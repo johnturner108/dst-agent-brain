@@ -1,5 +1,8 @@
 import re
 import json
+import os
+import threading
+import time
 
 def parse_action_str(action_str):
     # 解析动作字符串以提取动作类型 (Action) 和操作对象 (InvObject)
@@ -40,13 +43,46 @@ class ToolExecutor:
     ToolExecutor 类负责根据大型语言模型 (LLM) 返回的工具使用指令，
     更新应用程序的全局状态（即 current_action 字典）。
     """
-    def __init__(self, action_queue, shared_perception_dict):
-
+    def __init__(self, task_instance, action_queue, shared_perception_dict, dialog_queue, self_uid):
+        self.task_instance = task_instance
         self.action_queue = action_queue
+        self.dialog_queue = dialog_queue
         self.shared_perception_dict = shared_perception_dict
-        self.map = {}
+        self.map_file_path = './memory/map.json'
+        self.map = self.load_map() # 初始化时从文件加载地图
+        self.self_uid = self_uid
         print(f"ToolExecutor 初始化，动作队列: {self.action_queue} 和 感知字典：{self.shared_perception_dict}")
+
+        # Add attributes for managing the observer thread
+        self.observer_thread = None
+        self.observer_stop_event = threading.Event()
+
+    def load_map(self):
+        """
+        从 memory/map.json 文件加载地图数据。如果文件不存在，则创建空文件并返回空字典。
+        """
+        if not os.path.exists('./memory'):
+            os.makedirs('./memory')
         
+        if os.path.exists(self.map_file_path):
+            with open(self.map_file_path, 'r', encoding='utf-8') as f:
+                try:
+                    return json.load(f)
+                except json.JSONDecodeError:
+                    print(f"警告: {self.map_file_path} 文件内容为空或格式不正确，将初始化为空字典。")
+                    return {}
+        else:
+            # 文件不存在，创建空文件并返回空字典
+            with open(self.map_file_path, 'w', encoding='utf-8') as f:
+                json.dump({}, f)
+            return {}
+
+    def save_map(self):
+        """
+        将当前地图数据保存到 memory/map.json 文件中。
+        """
+        with open(self.map_file_path, 'w', encoding='utf-8') as f:
+            json.dump(self.map, f, ensure_ascii=False, indent=4)
 
     def executeTool(self, content_blocks):
 
@@ -77,12 +113,93 @@ class ToolExecutor:
                     return
                 elif action_name == 'mark_loc':
                     loc_name = block.get('params')['name']
-                    self.map[loc_name] = block.get('params')['coords']
+                    self.map[loc_name] = json.dumps(block.get('params'))
+                    self.save_map() # 在标记位置后保存地图
                     return "The location {} has been marked".format(loc_name)
                 elif action_name == 'check_map':
                     return "The map has the following locations:\n" + json.dumps(self.map, sort_keys=True)
+                elif action_name == 'check_self_GUID':
+                    return "You GUID is: " + str(self.self_uid)
+                elif action_name == 'observer':
+                    return self.execute_observer(block)
 
         print("在内容块中未找到 'perform_action' 工具使用指令。")
+
+
+    def execute_observer(self, block):
+        """
+        Starts a background thread to observe for a specific item.
+        """
+        # Stop any previously running observer thread
+        if self.observer_thread and self.observer_thread.is_alive():
+            self.observer_stop_event.set()
+            # Wait briefly for the old thread to finish
+            self.observer_thread.join(timeout=1.0) 
+
+        params = block.get('params', {})
+        item_to_find = params.get('entities')
+
+        if not item_to_find:
+            return "Observer Error: You must specify the 'entities' to observe."
+
+        # Clear the stop event for the new thread
+        self.observer_stop_event.clear()
+        
+        # Create and start the new observer thread
+        self.observer_thread = threading.Thread(
+            target=self._observe_loop, 
+            args=(item_to_find,),
+            daemon=True  # Daemon threads exit when the main program exits
+        )
+        self.observer_thread.start()
+
+        # Return a confirmation message to the LLM
+        return f"Observer has been set up. I will now monitor the surroundings for '{item_to_find}' and will notify you when it appears."
+
+    def _observe_loop(self, entities_str: str):
+        """
+        The actual loop that runs in the background thread.
+        """
+        entity_list = [name.strip() for name in entities_str.split(',') if name.strip()]
+        print(f"[Observer] Started looking for item: '{entities_str}'")
+        while not self.observer_stop_event.is_set():
+            try:
+                # Safely get the list of visible items
+                vision_items = self.shared_perception_dict.get("Vision", [])
+                
+                if not vision_items:
+                    time.sleep(1) # Wait if perception data is not yet available
+                    continue
+                
+                found_item_list = []
+                for item in vision_items:
+                    found_item_name = item.get("Prefab")
+                    if item and item.get("Prefab") in entity_list:
+                        print(f"[Observer] Found '{found_item_name}'! Triggering new inference.")
+                        found_item_list.append(found_item_name)
+
+                
+                if len(found_item_list) > 0:
+                    # Construct the new prompt for the LLM
+                    prompt = (f"Observer: The item you were waiting for, '{json.dumps(found_item_list)}', "
+                                f"is now in your surroundings. You can proceed with the next action.")
+                    
+                    # Use the stored task_instance to call processStream
+                    self.task_instance.processStream(prompt)
+                    self.action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
+                    # Job is done, exit the thread
+                    return 
+                
+                # Wait for 1 second before checking again to avoid high CPU usage
+                time.sleep(1)
+
+            except Exception as e:
+                print(f"[Observer] Error in observation loop: {e}")
+                time.sleep(5) # Wait longer if an error occurs
+
+        print(f"[Observer] Stopped for '{entities_str}'.")
+
+
     
     def execute_perform_action(self, block):
 

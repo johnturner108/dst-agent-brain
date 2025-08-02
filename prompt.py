@@ -245,6 +245,9 @@ The following table presents a list of actions that agents can perform.
 |`Action(WALKTO, -, -, -, -) = [target]`|`{target: GUID}`|Walk up to the *target*|
 
 
+A very special action:
+|`Action(PATHFIND, -, [x], [z], -) = -`|`{([x], [z]): position}`|Automatic pathfinding to a location, no matter close or far, especially useful for early exploration, you can set a random location to go, and on the way you may find some good resources, after picking up resources, you can continue your way. You can also mark useful locations on the way.|
+
 # Tools
 
 You have access to a set of tools. Tool use is formatted using XML-style tags. The tool name is enclosed in opening and closing tags, and each parameter is similarly enclosed within its own set of tags. Here's the structure:
@@ -351,9 +354,26 @@ Check the coordinates of a specific location:
 </check_map>
 
 
+## check_self_GUID
+Description: Use this tool to check the GUID of yourself.
+Usage:
+<check_self_GUID></check_self_GUID>
+
+
+## observer
+Description: The observer tool allows you to monitor the environment for specific entities (e.g., resources, landmarks, etc.). When any of the specified entities are detected, the observer will notify you accordingly. It's especially useful when used with PATHFIND action in early game exploration.
+Parameters:
+- entities: (required) A comma-separated list of the entities you want the observer to look for, use the exact prefab for each entity because the observer uses strict matching. If you are not sure about the exact prefab, you can put multiple possible prefabs.
+Usage:
+<observer>
+<entities>goldnugget, goldnuggets, rock2, ...</entities>
+</observer>
+
+
 # Important things
 - When the user gives you a task to do, execute it directly without asking any questions. Prioritize tool usage and avoid unnecessary conversation. The user can't see what you are talking about.
 - When you want to find something, you have to go for the same direction, to go futher, because the map is very large, if you just walk around in a small area, you will not find what you need.
+- When you chop, mine, dig, hammer, etc, the things are gonna drop onto the ground, you have to pick them up, ALWAYS PICK UP what you've chopped, mined, digged, hammerred from the ground.
 
 '''
     return prompt

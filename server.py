@@ -20,11 +20,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 action_queue = ActionQueue(maxsize=20)
 dialog_queue = DialogQueue(maxsize=20)
 current_perception: Dict = {}
-task_instance = Task(action_queue, current_perception, dialog_queue)
+self_uid = 0
+task_instance = Task(action_queue, current_perception, dialog_queue, self_uid)
 
+# action_queue.put_action(parse_action_str("Action(PATHFIND, -, 190, -545, -) = -"))
+# action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
 
 @app.get("/{guid}/decide/{layer}")
 async def decide(guid: str, layer: str):
+    global self_uid
+    self_uid = guid
     if layer == "Behaviour":
         response_data = action_queue.get_action()
         return JSONResponse(content=response_data)
@@ -62,6 +67,8 @@ async def get_vision():
 
 @app.post("/{guid}/perceptions")
 async def receive_perception(guid: str, request: Request):
+    global self_uid
+    self_uid = guid
     data = await request.json()
     current_perception.clear()
     current_perception.update(data)
@@ -72,7 +79,13 @@ async def receive_perception(guid: str, request: Request):
 async def receive_event(guid: str, request: Request):
     data = await request.json()
     if data.get("Type") in ("Action-End", "Action-Failed"):
-        task_instance.processStream(json.dumps(data))
+        if data.get("Name") == "PATHFIND":
+            if data.get("Type") in "Action-End":
+                task_instance.processStream("You've arrived at " + str(data.get("Value")))
+            else:
+                task_instance.processStream("Can't find way to " + str(data.get("Value")))
+        else:
+            task_instance.processStream(json.dumps(data))
     # logging.info(f"Event received for GUID {guid}: {data}")
     return JSONResponse(content={"status": "received event"})
 
@@ -84,6 +97,7 @@ async def receive_command(guid: str, request: Request):
     try:
         surroundings = task_instance.toolExecutor.executeTool(parse_assistant_message("<check_surroundings></check_surroundings>")[0])
         stream_input = f"The current entities are surrounding you:\n{surroundings}\n\n{command}"
+        dialog_queue.put_dialog("Task Start: " + command)
         task_instance.processStream(stream_input)
     except Exception as e:
         logging.error(f"Error while processing command: {e}")
