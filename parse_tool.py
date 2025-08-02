@@ -55,7 +55,7 @@ def parse_assistant_message(assistant_message: str) -> Tuple[List[Dict[str, Any]
 
 
 # --- Example Usage ---
-message = """
+message = """asdfasdf
 <check_map>
 <name>Pig houses</name>
 </check_map>"""

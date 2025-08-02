@@ -18,12 +18,13 @@ from tool_executor import ToolExecutor
 
 
 class Task:
-    def __init__(self, action_queue, current_perception):
+    def __init__(self, action_queue, current_perception, dialog_queue):
         self.client = OpenAI(
             api_key = "sk-L7Q2cBME4D7Oip201OQicXPrrcbNXP2Rufq4sVtYZtFQlbEb", # 在这里将 MOONSHOT_API_KEY 替换为你从 Kimi 开放平台申请的 API Key
             base_url = "https://api.moonshot.cn/v1",
         )
         self.toolExecutor = ToolExecutor(action_queue, current_perception)
+        self.dialog_queue = dialog_queue
         self.messages = [
             {"role": "system", "content": systemPrompt()},
         ]
@@ -79,7 +80,8 @@ class Task:
             if self.current_thread and self.current_thread.is_alive():
                 print("[Task] Aborting previous inference...")
                 self.abort_event.set()
-                self.current_thread.join(timeout=2.0)  # 等待最多2秒
+                # self.current_thread.join(timeout=2.0)  # 等待最多2秒
+                self.current_thread.join()  # 等待最多2秒
             
             # 重置abort事件
             self.abort_event.clear()
@@ -112,6 +114,7 @@ class Task:
                 self.messages.append({"role": "assistant", "content": full_message})
                 self.writeLog({"role": "assistant", "content": full_message})
                 content_blocks, has_tool_use = parse_assistant_message(full_message)
+                self.add_to_dialog_queue(content_blocks)
                 result = self.toolExecutor.executeTool(content_blocks)
                 if result and not self.abort_event.is_set():
                     self._processStreamInternal(result)
@@ -138,64 +141,11 @@ class Task:
                 self.current_thread.join(timeout=1.0)
                 return True
             return False
-
-# --- Example Usage ---
-
-# if __name__ == "__main__":
-#     # 1. Create a threading.Event object to control the stream.
-#     abort_signal = threading.Event()
-
-#     # 2. Define the initial conversation messages.
-#     initial_messages = [
-#         {"role": "system", "content": "你是 Kimi，由 Moonshot AI 提供的人工智能助手..."},
-#         {"role": "user", "content": "请给我讲一个关于太空探索的简短故事。"}
-#     ]
-
-#     print("--- Starting stream (will abort in 1.5 seconds) ---")
-
-#     # 3. Create a thread that will set the abort signal after a delay.
-#     # This simulates a user sending a new command or closing the window.
-#     # def interrupt_stream():
-#     #     time.sleep(1.5)
-#     #     print("\n[Sending abort signal...]")
-#     #     abort_signal.set()
-
-#     # interrupt_thread = threading.Thread(target=interrupt_stream)
-#     # interrupt_thread.start()
-
-#     # 4. Call the generator function and print the yielded content.
-#     full_response = ""
-#     try:
-#         stream = createMessage(initial_messages, abort_signal)
-#         for content_chunk in stream:
-#             print(content_chunk, end="", flush=True)
-#             full_response += content_chunk
-#     except KeyboardInterrupt:
-#         print("\n[Stream interrupted by keyboard]")
-
-#     # It's good practice to wait for the thread to finish.
-#     # interrupt_thread.join()
-
-#     print("\n\n--- Full response received before abort ---")
-#     print(full_response)
-#     print("\n--- Example finished ---")
-
-#     # --- Example of a full, uninterrupted stream ---
-#     print("\n\n--- Starting a new, uninterrupted stream ---")
-#     uninterrupted_messages = [
-#         {"role": "system", "content": "你是 Kimi，由 Moonshot AI 提供的人工智能助手..."},
-#         {"role": "user", "content": "请给我讲一个关于太空探索的简短故事。"}
-#     ]
-#     # We need a new event object that is not set.
-#     new_abort_signal = threading.Event()
-#     full_story = ""
-#     for content_chunk in createMessage(uninterrupted_messages, new_abort_signal):
-#         print(content_chunk, end="", flush=True)
-#         full_story += content_chunk
-    
-#     print("\n\n--- Full story ---")
-#     print(full_story)
-
+        
+    def add_to_dialog_queue(self, content_blocks):
+        for block in content_blocks:
+            if block.get('type') == 'text':
+                self.dialog_queue.put_dialog(block["content"])
 
 if __name__ == "__main__":
     

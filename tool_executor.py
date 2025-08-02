@@ -111,12 +111,26 @@ class ToolExecutor:
                 {key: item[key] for key in fields_to_keep if item and key in item}
                 for item in self.shared_perception_dict["ItemSlots"]
             ]
-            return "Your current inventory has the following items:\n" + json.dumps(inventory, sort_keys=True)
+            equips = [
+                {key: item[key] for key in fields_to_keep if item and key in item}
+                for item in self.shared_perception_dict["EquipSlots"]
+            ]
+            return "Your current inventory has the following items:\n" + json.dumps(inventory, sort_keys=True) + '\n' \
+                    + "And you are equipped with:\n" + json.dumps(equips, sort_keys=True)
         else:
             item_name = block.get('params')['item_name']
-            quantity = 0
-            print(self.shared_perception_dict["ItemSlots"])
+            quantity_itemslots = 0
+            # print(self.shared_perception_dict["ItemSlots"])
             for item in self.shared_perception_dict["ItemSlots"]:
                 if item and item["Prefab"] == item_name:
-                    quantity += item.get("Quantity", 0)
-            return "Your have {} {}.".format(quantity, item_name)
+                    quantity_itemslots += item.get("Quantity", 0)
+            quantity_equipslots = 0
+            # print(self.shared_perception_dict["EquipSlots"])
+            for item in self.shared_perception_dict["EquipSlots"]:
+                if item and item["Prefab"] == item_name:
+                    quantity_equipslots += item.get("Quantity", 0)
+            
+            itemslots_response = "Your have {} {} in your ItemSlots.".format(quantity_itemslots, item_name, ) if quantity_itemslots > 0 else ""
+            equipslots_response = "Your have {} {} in your EquipSlots.".format(quantity_equipslots, item_name, ) if quantity_equipslots > 0 else ""
+
+            return itemslots_response + "\n" + equipslots_response
