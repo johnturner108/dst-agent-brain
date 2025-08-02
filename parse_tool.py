@@ -1,7 +1,7 @@
 import re
 from typing import List, Dict, Any, Tuple
 
-ALLOWED_TOOLS = {"check_inventory", "perform_action", "check_surroundings", "task_completion", "check_equipslots"}  # 只允许的工具标签名
+ALLOWED_TOOLS = {"check_inventory", "perform_action", "check_surroundings", "task_completion", "check_equipslots", "mark_loc", "check_map"}  # 只允许的工具标签名
 
 def parse_assistant_message(assistant_message: str) -> Tuple[List[Dict[str, Any]], bool]:
     content_blocks = []
@@ -56,13 +56,9 @@ def parse_assistant_message(assistant_message: str) -> Tuple[List[Dict[str, Any]
 
 # --- Example Usage ---
 message = """
-<perform_action>
-<action>
-Action(PICK, -, -, -, -) = 103577
-Action(PICK, -, -, -, -) = 103578
-Action(PICK, -, -, -, -) = 103579
-</action>
-</perform_action>"""
+<check_map>
+<name>Pig houses</name>
+</check_map>"""
 
 content_blocks = parse_assistant_message(message)
 print(content_blocks)

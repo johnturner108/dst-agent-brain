@@ -7,6 +7,7 @@ from task import Task
 import threading
 from prompt import systemPrompt
 from queue import Queue, Empty
+from tool_executor import parse_action_str
 
 # 配置日志，方便在终端看到服务器活动
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -81,7 +82,9 @@ class SimpleAIHandler(BaseHTTPRequestHandler):
             self._set_headers()
             self.wfile.write(json.dumps(response, sort_keys=True).encode("utf-8"))
 
-
+        elif self.path == "/vision":
+            self._set_headers()
+            self.wfile.write(json.dumps(self.current_perception, sort_keys=True).encode("utf-8"))
 
         else:
             # 对于不匹配 /GUID/decide/(Behaviour|Dialog) 的 GET 请求，返回 404
@@ -250,6 +253,7 @@ class ActionQueue:
 # }
 # current_action = {}
 action_queue = ActionQueue(maxsize=10)
+# action_queue.put_action(parse_action_str("Action(DROP, [berries_GUID], -, -, -) = -"))
 # task_instance 也只创建一次
 # task_instance = Task(current_action, current_perception)
 task_instance = Task(action_queue, current_perception)

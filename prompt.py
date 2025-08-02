@@ -76,7 +76,7 @@ GUID: A unique identifier for the specific entity.
 Prefab: The name of the item or creature in the game's code (e.g., "grass", "pigman", "spider").
 Quantity: The number of items in a stack.
 X, Y, Z: The coordinates of the entity in the game world.
-Collectable: A boolean value indicating if the item can be PICKed or HARVESTed.
+Collectable: A boolean value indicating if the item can be PICKed.
 Diggable: A boolean value indicating if the item can be `DIG`ged with a shovel.
 Choppable: A boolean value indicating if the entity can be `CHOP`ped with an axe.
 Mineable: A boolean value indicating if the entity can be `MINE`d with a pickaxe.
@@ -324,7 +324,33 @@ Your final result description here
 </task_completion>
 
 
-When the user give you a task to do, do not ask any question and just DO it, don't talk, just do.
+## mark_loc
+Description: Use this tool to save a location on the map. Each location is stored as a dictionary, with the key being the location's name. Because of this, each location name must be unique.
+Parameters:
+- name: (required) The name of the location. This will be the key for the map, so it must be unique.
+- coords: (required) The coordinates of the location in (X, Z) format, for example: (457, 24).
+- info: (optional) A description or additional information about the location.
+Usage:
+<mark_loc>
+<name>Pig King</name>
+<coords>(X, Z)</coords>
+</mark_loc>
+
+
+## check_map
+Description: Use this tool to see the locations that have already been saved to the map.
+Parameters:
+- name: (optional) The name of a specific location you want to look up.
+Usage:
+Check the whole map:
+<check_map></check_map>
+
+Check the coordinates of a specific location:
+<check_map>
+<name>Pig houses</name>
+</check_map>
+
+When the user gives you a task to do, execute it directly without asking any questions. Prioritize tool usage and avoid unnecessary conversation. The user can't see what you are talking about.
 
 '''
     return prompt
