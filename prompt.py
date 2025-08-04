@@ -191,7 +191,7 @@ The following table presents a list of actions that agents can perform.
 |`Action(ADDFUEL, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Add fuel to fueled entities (campfire, firesupressor)|
 |`Action(ATTACK, -, -, -, -) = [target]`|`{target: GUID}`|Attack other entities|
 |`Action(BAIT, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Put bait on traps|
-|`Action(BUILD, -, [x], [z], [recipe]) = `|`{([x], [z]): position, recipe: recipe's name}`|Depending on weather you are crafting an item or placing a structure you'll need to pass a value to the *(x, z)* parameters|
+|`Action(BUILD, -, [x], [z], [recipe]) = -`|`{([x], [z]): position, recipe: recipe's name}`|Depending on weather you are crafting an item or placing a structure you'll need to pass a value to the *(x, z)* parameters|
 |`Action(CASTSPELL, [invobject], -, -, -) = [target]`|`{invobject:GUID, target: GUID}`|Cast magic item at *target*. If *invobject* is not specified, the equipped item is used.|
 |`Action(CHECKTRAP, -, -, -, -) = [target]`|`{target: GUID}`|Check if the given trap has caught anything|
 |`Action(CHOP, -, -, -, -) = [target]`|`{target: GUID}`|Chop trees, an axe must be equipped in order to use|
@@ -302,10 +302,11 @@ Usage:
 
 For example:
 <perform_action>
-<action>Action(BUILD, -, -, -, axe) = 103531</action>
+<action>Action(BUILD, -, -, -, axe) = -</action>
 </perform_action>
 
-You can also perform several similar actions at once, but NO MORE THAN 5 actions at a time, for example:
+You can also perform several similar actions at once, but 1. NO MORE THAN 5 actions at a time, 2. Not allowed for CHOP, MINE, HAMMER these working actions that takes a long time.
+For example:
 <perform_action>
 <action>
 Action(PICK, -, -, -, -) = 103577
@@ -398,3 +399,63 @@ Usage:
 
 
 # |`Action(WANDER, -, -, -, -) = -`|`{}`|This is a the behaviour of wandering about the world, not really an action|
+
+
+
+
+# |`Action(ACTIVATE, -, -, -, -) = [target]`|`{target: GUID}`|Interact with some game elements|
+# |`Action(ADDFUEL, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Add fuel to fueled entities (campfire, firesupressor)|
+# |`Action(ATTACK, -, -, -, -) = [target]`|`{target: GUID}`|Attack other entities|
+# |`Action(BAIT, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Put bait on traps|
+# |`Action(BUILD, -, [x], [z], [recipe]) = -`|`{([x], [z]): position, recipe: recipe's name}`|Depending on weather you are crafting an item or placing a structure you'll need to pass a value to the *(x, z)* parameters|
+# |`Action(CASTSPELL, [invobject], -, -, -) = [target]`|`{invobject:GUID, target: GUID}`|Cast magic item at *target*. If *invobject* is not specified, the equipped item is used.|
+# |`Action(CHECKTRAP, -, -, -, -) = [target]`|`{target: GUID}`|Check if the given trap has caught anything|
+# |`Action(CHOP, -, -, -, -) = [target]`|`{target: GUID}`|Chop trees, an axe must be equipped in order to use|
+# |`Action(COMBINESTACK, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Combines the given *invobject* into *target* if it is the same prefab and target is not full|
+# |`Action(COOK, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Cook *invobject* at the specified *target*|
+# |`Action(DEPLOY, [invobject], [x], [z], -) = -`|`{invobject: GUID, ([x], [z]): position}`|Place ground tile, walls, fences, and gates|
+# |`Action(DIG, -, -, -, -) = [target]`|`{target: GUID}`|Dig grass, twigs, rabbit holes, graves, and others from the ground|
+# |`Action(DROP, [invobject], [x], [Z], -) = -`|`{invobject: GUID, ([x], [z]): position}`|Drop held item to a spot in the ground|
+# |`Action(DRY, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Dry meat at racks|
+# |`Action(EAT, -, -, -, -) = [target]`|`{target: GUID}`|Eat food|
+# |`Action(EQUIP, [invobject], -, -, -) = -`|`{invobject: GUID}`|Equip an item that is in the character's inventory|
+# |`Action(EXTINGUISH, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Use the *invobject* to extinguish the burning *target*|
+# |`Action(FEED, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Feed the *invobject* to the *target*|
+# |`Action(FEEDPLAYER, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Feed the player (*target*) with *invobject* (might work the same has the above)|
+# |`Action(FERTILIZE, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Use *invobject* to Fertilize the *target*|
+# |`Action(FILL, [invobject], -, -, -) = [target]`|`{invobject: GUID}, target:GUID`|Fill the mosquito sack (*invobject*) at a pond (*target*)|
+# |`Action(FISH, -, -, -, -) = [target]`|`{target: GUID}`|Use a fishing rod (must be equipped) to fish in a pond (*target*)|
+# |`Action(GIVE, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Give *invobject* to *target*|
+# |`Action(GIVEALLTOPLAYER, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Give all of *invobject* to player (*target*)|
+# |`Action(GIVETOPLAYER, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Give *invobject* to player (*target*) (Not sure on the difference of these three actions)|
+# |`Action(HAMMER, -, -, -, -) = [target]`|`{target: GUID}`|Hammer down built structures (*target*)|
+# |`Action(HARVEST, -, -, -, -) = [target]`|`{target: GUID}`|Harvest crops and cookpots|
+# |`Action(HEAL, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Use *invobject* to heal the *target*|
+# |`Action(JUMPIN, -, -, -, -) = [target]`|`{target: GUID}`|Jump into wormhole (*target*)|
+# |`Action(LIGHT, -, -, -, -) = [target]`|`{target: GUID}`|Set the *target* on fire (must have a torch equipped)|
+# |`Action(LOOKAT, -, -, -, -) = [target]`|`{target: GUID}`|Face the *target*|
+# |`Action(MANUALEXTINGUISH, -, -, -, -) = [target]`|`{target: GUID}`|Use your hands to try and extinguish fires|
+# |`Action(MINE, -, -, -, -) = [target]`|`{target: GUID}`|Mine rocks, sinkholes, glassiers, etc (must have a pickaxe equipped)|
+# |`Action(MOUNT, -, -, -, -) = [target]`|`{target: GUID}`|Mount a saddled mount (*target*)|
+# |`Action(MURDER, -, -, -, -) = [target]`|`{target: GUID}`|Murder targeted inocent creature (e.g. rabbits) while in inventory|
+# |`Action(NET, -, -, -, -) = [target]`|`{target: GUID}`|Use nets to catch bugs (*target*)|
+# |`Action(PICK, -, -, -, -) = [target]`|`{target: GUID}`|Pick the targeted resource (e.g. grass, saplings, berry bushes, etc)|
+# |`Action(PICKUP, -, -, -, -) = [target]`|`{target: GUID}`|Pick up items from the ground (e.g. rocks, twigs, cutgrass, etc.)|
+# |`Action(PLANT, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Plant *invobject* (seeds) into *target*|
+# |`Action(REEL, -, -, -, -) = [target]`|`{target: GUID}`|Reel in the fish while fishing (the target is the pond)|
+# |`Action(RESETMINE, -, -, -, -) = [target]`|`{target: GUID}`|Reset mines like the tooth trap|
+# |`Action(RUMMAGE, -, -, -, -) = [target]`|`{target: GUID}`|Rummage about in a container|
+# |`Action(SADDLE, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`| Use *invobject* to saddle up the *target*|
+# |`Action(SEW, [invobject], -, -, -) = [target]`|`{invobject: GUID}, target: GUID`|Use *invobject* to sew the *target*|
+# |`Action(SHAVE, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Use the *invobject* to shave the *target*|
+# |`Action(SLEEPIN, -, -, -, -) = [target]`|`{target: GUID}`|Sleep in the *target* (tent or sleeping bag)|
+# |`Action(SMOTHER, -, -, -, -) = [target]`|`{target: GUID}`|Smother the smoking *target* (stuff about to burst into flames)|
+# |`Action(STORE, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Store the *invobject* into the *target*|
+# |`Action(TAKEITEM, [], -, -, -) = [target]`|`{}`||take brid from cage|
+# |`Action(TERRAFORM, [invobject], [x], [z], -) = -`|`{invobject: GUID, ([x], [z]): position}`|Use the *invobject* to terraform the *position*|
+# |`Action(TURNOFF, -, -, -, -) = [target]`|`{target: GUID}`|Turn the *target* off (e.g. firesupressor)|
+# |`Action(TURNON, -, -, -, -) = [target]`|`{target: GUID}`|Turn the *target* on|
+# |`Action(UNEQUIP, -, -, -, -) = [target]`|`{target: GUID}`|Unequip *target*|
+# |`Action(UNSADDLE, -, -, -, -) = [target]`|`{target: GUID}`|Remove the saddle from the *target*|
+# |`Action(UPGRADE, [invobject], -, -, -) = [target]`|`{invobject: GUID, target: GUID}`|Use *invobject to upgrade the *target* (e.g. upgrade a wall)|
+# |`Action(WALKTO, -, -, -, -) = [target]`|`{target: GUID}`|Walk up to the *target*|

@@ -8,6 +8,7 @@ from prompt import systemPrompt
 import json
 import datetime
 from tool_executor import ToolExecutor
+import os
 
 # 从 server.py 导入全局变量 current_action
 # 这样 task.py 就可以访问并修改 server.py 中定义的 current_action 字典
@@ -23,13 +24,20 @@ class Task:
             api_key = "sk-L7Q2cBME4D7Oip201OQicXPrrcbNXP2Rufq4sVtYZtFQlbEb", # 在这里将 MOONSHOT_API_KEY 替换为你从 Kimi 开放平台申请的 API Key
             base_url = "https://api.moonshot.cn/v1",
         )
+        # self.client = OpenAI(
+        #     # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
+        #     api_key="sk-e5c6153187014493bb4802a8aac1b375",
+        #     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        # )
         self.toolExecutor = ToolExecutor(self, action_queue, current_perception, dialog_queue, self_uid)
         self.dialog_queue = dialog_queue
         self.messages = [
             {"role": "system", "content": systemPrompt()},
         ]
+        if not os.path.exists('./chat_log'):
+            os.makedirs('./chat_log')
         # 根据时间戳命名日志文件
-        self.log_file = "chat_log_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".txt"
+        self.log_file = "./chat_log/" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".txt"
         
         # 添加线程管理
         self.current_thread = None
@@ -40,7 +48,7 @@ class Task:
         
         try:
             stream = self.client.chat.completions.create(
-                model="kimi-k2-0711-preview",
+                model = "kimi-k2-0711-preview", # kimi-k2-0711-preview    qwen-plus
                 messages=self.messages,
                 temperature=0.6,
                 stream=True,

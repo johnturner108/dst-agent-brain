@@ -1,3 +1,4 @@
 chat_log_*.txt
 __pycache__
 .vscode
+chat_log

@@ -1,4 +1,5 @@
 {
     "Home Base": "{\"name\": \"Home Base\", \"coords\": \"(190, -540)\", \"info\": \"My established base with Research Lab. Contains scattered resources like beard hair, monster meat, and hound's tooth. Nearby trees and saplings available for gathering.\"}",
-    "Research Lab Area": "{\"name\": \"Research Lab Area\", \"coords\": \"(190, -545)\", \"info\": \"Area with research lab, evergreen trees, and hound attack loot drops including monster meat and hound's tooth\"}"
+    "Research Lab Area": "{\"name\": \"Research Lab Area\", \"coords\": \"(190, -545)\", \"info\": \"Area with research lab, evergreen trees, and hound attack loot drops including monster meat and hound's tooth\"}",
+    "Current Location": "{\"name\": \"Current Location\", \"coords\": \"(-200.61999511719, -287.64099121094)\", \"info\": \"Starting point where task was assigned\"}"
 }

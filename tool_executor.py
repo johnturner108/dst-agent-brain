@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+import uuid
 
 def parse_action_str(action_str):
     # 解析动作字符串以提取动作类型 (Action) 和操作对象 (InvObject)
@@ -24,6 +25,8 @@ def parse_action_str(action_str):
 
     # 清空并更新共享的 current_action 字典
     # 使用 clear() 和 update() 确保修改的是同一个字典对象，而不是创建新对象
+    # 生成一个4位数的uuid作为action的唯一标识
+    auid = str(uuid.uuid4())[:4]
     action_obj = {
         "Type": "Action",
         "Action": action_type,
@@ -33,7 +36,8 @@ def parse_action_str(action_str):
         "PosX": posX,
         "Target": target,
         "PosZ": posZ,
-        "WFN": action_str # 使用完整的动作字符串作为 WFN
+        "WFN": action_str, # 使用完整的动作字符串作为 WFN
+        "AUID": auid # 使用完整的动作字符串作为 AUID
     }
     return action_obj
     
@@ -51,12 +55,24 @@ class ToolExecutor:
         self.map_file_path = './memory/map.json'
         self.map = self.load_map() # 初始化时从文件加载地图
         self.self_uid = self_uid
+        self.observed_guids = []
+        self.start_cleanup_timer()  # 启动定时清理
         print(f"ToolExecutor 初始化，动作队列: {self.action_queue} 和 感知字典：{self.shared_perception_dict}")
 
         # Add attributes for managing the observer thread
         self.observer_thread = None
         self.observer_stop_event = threading.Event()
+    
+    def clear_observed_guids(self):
+        print("Clearing observed_guids...")
+        self.observed_guids.clear()  # 清空集合
+        self.start_cleanup_timer()  # 递归调用，实现循环
 
+    def start_cleanup_timer(self):
+        timer = threading.Timer(120, self.clear_observed_guids)
+        timer.daemon = True  # 设为守护线程（主线程退出时自动结束）
+        timer.start()
+    
     def load_map(self):
         """
         从 memory/map.json 文件加载地图数据。如果文件不存在，则创建空文件并返回空字典。
@@ -176,17 +192,19 @@ class ToolExecutor:
                     found_item_name = item.get("Prefab")
                     if item and item.get("Prefab") in entity_list:
                         print(f"[Observer] Found '{found_item_name}'! Triggering new inference.")
+                        self.observed_guids.append(item.get("GUID"))
                         found_item_list.append(found_item_name)
 
                 
                 if len(found_item_list) > 0:
                     # Construct the new prompt for the LLM
-                    prompt = (f"Observer: The item you were waiting for, '{json.dumps(found_item_list)}', "
-                                f"is now in your surroundings. You can proceed with the next action.")
+                    prompt = (f"Observer Shutting down: The item you were waiting for, '{json.dumps(found_item_list)}', "
+                                f"is now in your surroundings. You can proceed with the next action. You may set up the observer again if you are done with your action.")
                     
                     # Use the stored task_instance to call processStream
                     self.task_instance.processStream(prompt)
                     self.action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
+                    self.dialog_queue.put_dialog(f"I found {json.dumps(found_item_list)}")
                     # Job is done, exit the thread
                     return 
                 
@@ -208,17 +226,21 @@ class ToolExecutor:
             action_strs = params.get('action').split("\n")
             for action_str in action_strs:
                 action_obj = parse_action_str(action_str)
-                if action_obj is str:
+                if type(action_obj) is str:
                     return action_obj
                 self.action_queue.put_action(action_obj)
         else:
             action_str = params.get('action') # 例如：'Action(BUILD, -, -, -, axe)'
             action_obj = parse_action_str(action_str)
-            if action_obj is str:
+            if type(action_obj) is str:
                 return action_obj
             self.action_queue.put_action(action_obj)
         # requires_approval = params.get('requires_approval') # 这个参数当前未在 current_action 中使用
-        return # 执行第一个工具使用块后即返回，因为用户要求“中止”
+        if action_obj.get("Action") == "PATHFIND":
+            return "You are on your way now, output <wait><\wait> if you have nothing to do while the character goes towards the destination."
+        if action_obj.get("Action") == "CHOP":
+            return "You are now Chopping, send next action to the action queue if you want. (Just plan the next action or the next few actions, better not plan too far ahead)"
+        return # "The actions are being performed right now."# 执行第一个工具使用块后即返回，因为用户要求“中止”
     
     def execute_check_inventory(self, block):
         if block.get('params') == {}:

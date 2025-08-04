@@ -23,8 +23,11 @@ current_perception: Dict = {}
 self_uid = 0
 task_instance = Task(action_queue, current_perception, dialog_queue, self_uid)
 
-# action_queue.put_action(parse_action_str("Action(PATHFIND, -, 190, -545, -) = -"))
+# action_queue.put_action(parse_action_str("Action(PATHFIND, -, 400, 350, -) = -"))
 # action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
+# action_queue.put_action(parse_action_str("Action(BUILD, -, 262, 100, homesign) = -"))
+# action_queue.put_action(parse_action_str("Action(CHOP, -, -, -, -) = 118707"))
+
 
 @app.get("/{guid}/decide/{layer}")
 async def decide(guid: str, layer: str):
@@ -72,20 +75,36 @@ async def receive_perception(guid: str, request: Request):
     data = await request.json()
     current_perception.clear()
     current_perception.update(data)
+    # # 提取current_perception中的"Recipes"字段并保存为json文件
+    # recipes = current_perception.get("Recipes", [])
+    # # 直接保存原始recipes到文件
+    # with open("recipes.json", "w", encoding="utf-8") as f:
+    #     json.dump(recipes, f, indent=4, ensure_ascii=False)
+
+
     return JSONResponse(content={"status": f"Perception for GUID {guid} received and is being processed."}, status_code=202)
 
 
 @app.post("/{guid}/events")
 async def receive_event(guid: str, request: Request):
     data = await request.json()
-    if data.get("Type") in ("Action-End", "Action-Failed"):
-        if data.get("Name") == "PATHFIND":
-            if data.get("Type") in "Action-End":
-                task_instance.processStream("You've arrived at " + str(data.get("Value")))
-            else:
-                task_instance.processStream("Can't find way to " + str(data.get("Value")))
+    print(data)
+    if "BUILD" in data.get("Name"):
+        if data.get("Type") == "Action-Failed":
+            
+            info = "Info: {}".format(data.get("Info")) if data.get("Info") else ""
+            print(info)
+            task_instance.processStream("The action {} -> {} failed. {}".format(data.get("Name"), data.get("Value"), info))
+    elif data.get("Name") == "PATHFIND":
+        if data.get("Type") in "Action-End":
+            task_instance.processStream("You've arrived at " + str(data.get("Value")))
         else:
-            task_instance.processStream(json.dumps(data))
+            task_instance.processStream("Can't find way to " + str(data.get("Value")) + "or is interuppted")
+    else:
+        if data.get("Type") in "Action-End":
+            task_instance.processStream("The action {} -> {} done.".format(data.get("Name"), data.get("Value")))
+        elif data.get("Type") == "Action-Failed":
+            task_instance.processStream("The action {} -> {} failed.".format(data.get("Name"), data.get("Value")))
     # logging.info(f"Event received for GUID {guid}: {data}")
     return JSONResponse(content={"status": "received event"})
 
@@ -96,8 +115,10 @@ async def receive_command(guid: str, request: Request):
     command = data.get("command", "")
     try:
         surroundings = task_instance.toolExecutor.executeTool(parse_assistant_message("<check_surroundings></check_surroundings>")[0])
-        stream_input = f"The current entities are surrounding you:\n{surroundings}\n\n{command}"
-        dialog_queue.put_dialog("Task Start: " + command)
+        available_positions = "The positions that you can go to: " + json.dumps(current_perception["Positions"], sort_keys=True)
+        stream_input = f"The current entities are surrounding you:\n{surroundings}\n\n{available_positions}\n\n{command}"
+        dialog_queue.put_dialog("Task Start: "+ command)
+
         task_instance.processStream(stream_input)
     except Exception as e:
         logging.error(f"Error while processing command: {e}")
