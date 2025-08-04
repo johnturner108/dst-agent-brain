@@ -5,20 +5,24 @@ import uvicorn
 import logging
 import json
 import re
-from parse_tool import parse_assistant_message
-from task import Task
-from prompt import systemPrompt
-from tool_executor import parse_action_str
-from utils import ActionQueue, DialogQueue
+from ..tools.parse_tool import parse_assistant_message
+from ..core.task import Task
+from ..config.prompt import systemPrompt
+from ..tools.tool_executor import parse_action_str
+from ..utils.queues import ActionQueue, DialogQueue
+from ..config.settings import settings
 
 app = FastAPI()
 
 # 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL),
+    format=settings.LOG_FORMAT
+)
 
 # --- 全局状态对象 ---
-action_queue = ActionQueue(maxsize=20)
-dialog_queue = DialogQueue(maxsize=20)
+action_queue = ActionQueue(maxsize=settings.ACTION_QUEUE_SIZE)
+dialog_queue = DialogQueue(maxsize=settings.DIALOG_QUEUE_SIZE)
 current_perception: Dict = {}
 self_uid = 0
 task_instance = Task(action_queue, current_perception, dialog_queue, self_uid)
@@ -128,4 +132,4 @@ async def receive_command(guid: str, request: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=8081, reload=True)
+    uvicorn.run("src.api.server:app", host="0.0.0.0", port=8081, reload=True) 

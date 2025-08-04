@@ -61,4 +61,4 @@ message = """asdfasdf
 </observer>"""
 
 content_blocks = parse_assistant_message(message)
-print(content_blocks)
+print(content_blocks) 

@@ -2,42 +2,34 @@ from openai import OpenAI
 import openai
 import threading
 import time
-from parse_tool import parse_assistant_message
 import re
-from prompt import systemPrompt
 import json
 import datetime
-from tool_executor import ToolExecutor
 import os
-
-# 从 server.py 导入全局变量 current_action
-# 这样 task.py 就可以访问并修改 server.py 中定义的 current_action 字典
-
-
-
-
-
+from ..tools.parse_tool import parse_assistant_message
+from ..config.prompt import systemPrompt
+from ..tools.tool_executor import ToolExecutor
+from ..config.settings import settings
 
 class Task:
     def __init__(self, action_queue, current_perception, dialog_queue, self_uid):
+        # 使用配置中的AI设置
+        ai_config = settings.get_ai_config()
         self.client = OpenAI(
-            api_key = "sk-L7Q2cBME4D7Oip201OQicXPrrcbNXP2Rufq4sVtYZtFQlbEb", # 在这里将 MOONSHOT_API_KEY 替换为你从 Kimi 开放平台申请的 API Key
-            base_url = "https://api.moonshot.cn/v1",
+            api_key=ai_config["api_key"],
+            base_url=ai_config["base_url"],
         )
-        # self.client = OpenAI(
-        #     # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
-        #     api_key="sk-e5c6153187014493bb4802a8aac1b375",
-        #     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        # )
         self.toolExecutor = ToolExecutor(self, action_queue, current_perception, dialog_queue, self_uid)
         self.dialog_queue = dialog_queue
         self.messages = [
             {"role": "system", "content": systemPrompt()},
         ]
-        if not os.path.exists('./chat_log'):
-            os.makedirs('./chat_log')
+        
+        # 确保日志目录存在
+        if not os.path.exists(settings.CHAT_LOG_DIR):
+            os.makedirs(settings.CHAT_LOG_DIR)
         # 根据时间戳命名日志文件
-        self.log_file = "./chat_log/" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".txt"
+        self.log_file = os.path.join(settings.CHAT_LOG_DIR, datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".txt")
         
         # 添加线程管理
         self.current_thread = None
@@ -47,10 +39,11 @@ class Task:
     def createMessage(self, abort_event):
         
         try:
+            ai_config = settings.get_ai_config()
             stream = self.client.chat.completions.create(
-                model = "kimi-k2-0711-preview", # kimi-k2-0711-preview    qwen-plus
+                model=ai_config["model"],
                 messages=self.messages,
-                temperature=0.6,
+                temperature=ai_config["temperature"],
                 stream=True,
             )
             full_message = ""
@@ -155,11 +148,4 @@ class Task:
             if block.get('type') == 'text':
                 self.dialog_queue.put_dialog(block["content"])
             if block.get('type') == 'tool_use' and block.get('name') == "task_completion":
-                self.dialog_queue.put_dialog("Task Complete:" + block["params"].get("result", ""))
-
-
-# class SubTask():
-#     def __init__(self, action_queue, current_perception, dialog_queue, self_uid):
-
-
-    
+                self.dialog_queue.put_dialog("Task Complete:" + block["params"].get("result", "")) 

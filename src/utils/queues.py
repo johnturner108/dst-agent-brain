@@ -149,4 +149,4 @@ class DialogQueue:
     
     def is_full(self) -> bool:
         """检查队列是否已满"""
-        return self.queue.full()
+        return self.queue.full() 

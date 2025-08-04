@@ -4,6 +4,7 @@ import os
 import threading
 import time
 import uuid
+from ..config.settings import settings
 
 def parse_action_str(action_str):
     # 解析动作字符串以提取动作类型 (Action) 和操作对象 (InvObject)
@@ -52,7 +53,7 @@ class ToolExecutor:
         self.action_queue = action_queue
         self.dialog_queue = dialog_queue
         self.shared_perception_dict = shared_perception_dict
-        self.map_file_path = './memory/map.json'
+        self.map_file_path = settings.MAP_FILE_PATH
         self.map = self.load_map() # 初始化时从文件加载地图
         self.self_uid = self_uid
         self.observed_guids = []
@@ -69,16 +70,17 @@ class ToolExecutor:
         self.start_cleanup_timer()  # 递归调用，实现循环
 
     def start_cleanup_timer(self):
-        timer = threading.Timer(120, self.clear_observed_guids)
+        timer = threading.Timer(settings.OBSERVER_CLEANUP_INTERVAL, self.clear_observed_guids)
         timer.daemon = True  # 设为守护线程（主线程退出时自动结束）
         timer.start()
     
     def load_map(self):
         """
-        从 memory/map.json 文件加载地图数据。如果文件不存在，则创建空文件并返回空字典。
+        从配置的地图文件路径加载地图数据。如果文件不存在，则创建空文件并返回空字典。
         """
-        if not os.path.exists('./memory'):
-            os.makedirs('./memory')
+        # 确保内存目录存在
+        if not os.path.exists(settings.MEMORY_DIR):
+            os.makedirs(settings.MEMORY_DIR)
         
         if os.path.exists(self.map_file_path):
             with open(self.map_file_path, 'r', encoding='utf-8') as f:
@@ -240,7 +242,7 @@ class ToolExecutor:
             return "You are on your way now, output <wait><\wait> if you have nothing to do while the character goes towards the destination."
         if action_obj.get("Action") == "CHOP":
             return "You are now Chopping, send next action to the action queue if you want. (Just plan the next action or the next few actions, better not plan too far ahead)"
-        return # "The actions are being performed right now."# 执行第一个工具使用块后即返回，因为用户要求“中止”
+        return # "The actions are being performed right now."# 执行第一个工具使用块后即返回，因为用户要求"中止"
     
     def execute_check_inventory(self, block):
         if block.get('params') == {}:
@@ -272,4 +274,4 @@ class ToolExecutor:
             itemslots_response = "Your have {} {} in your ItemSlots.".format(quantity_itemslots, item_name, ) if quantity_itemslots > 0 else ""
             equipslots_response = "Your have {} {} in your EquipSlots.".format(quantity_equipslots, item_name, ) if quantity_equipslots > 0 else ""
 
-            return itemslots_response + "\n" + equipslots_response
+            return itemslots_response + "\n" + equipslots_response 
