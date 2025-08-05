@@ -63,6 +63,19 @@ class ToolExecutor:
         # Add attributes for managing the observer thread
         self.observer_thread = None
         self.observer_stop_event = threading.Event()
+        # 初始化时从文件加载recipe_list
+        self.recipe_to_ingredients = self.load_recipe_to_ingredients()
+    
+    def load_recipe_to_ingredients(self):
+        with open(settings.RECIPE_LIST_FILE_PATH, 'r', encoding='utf-8') as f:
+            recipe_list = json.load(f)
+        recipe_to_ingredients = {}
+        for recipe in recipe_list:
+            recipe_to_ingredients[recipe["name"]] = recipe["ingredients"]
+            recipe_to_ingredients[recipe["product"]] = recipe["ingredients"]
+            recipe_to_ingredients[recipe["display_name_en"]] = recipe["ingredients"]
+            recipe_to_ingredients[recipe["display_name_zh"]] = recipe["ingredients"]
+        return recipe_to_ingredients
     
     def clear_observed_guids(self):
         print("Clearing observed_guids...")
@@ -138,11 +151,23 @@ class ToolExecutor:
                     return "The map has the following locations:\n" + json.dumps(self.map, sort_keys=True)
                 elif action_name == 'check_self_GUID':
                     return "You GUID is: " + str(self.self_uid)
-                elif action_name == 'observer':
+                # elif action_name == 'observer':
+                #     return self.execute_observer(block)
+                elif action_name == 'explore':
                     return self.execute_observer(block)
+                elif action_name == 'check_recipe':
+                    return self.execute_check_recipe(block)
 
         print("在内容块中未找到 'perform_action' 工具使用指令。")
 
+    def execute_check_recipe(self, block):
+        if block.get('params') == {}:
+            return "You should specify the recipe you want to check."
+        elif block.get('params')['recipe'] not in self.recipe_to_ingredients:
+            return "Recipe not found"
+        else:
+            recipe_name = block.get('params')['recipe']
+            return "The recipe {} is available.".format(recipe_name) + "\n" + json.dumps(self.recipe_to_ingredients[recipe_name], sort_keys=True, ensure_ascii=False)
 
     def execute_observer(self, block):
         """
@@ -155,11 +180,11 @@ class ToolExecutor:
             self.observer_thread.join(timeout=1.0) 
 
         params = block.get('params', {})
-        item_to_find = params.get('entities')
+        item_to_find = params.get('search')
 
         if not item_to_find:
-            return "Observer Error: You must specify the 'entities' to observe."
-
+            return "Observer Error: You must specify the 'search' to look for items."
+        self.action_queue.put_action(parse_action_str("Action(EXPLORE, -, -, -, -) = -"))
         # Clear the stop event for the new thread
         self.observer_stop_event.clear()
         
@@ -172,7 +197,8 @@ class ToolExecutor:
         self.observer_thread.start()
 
         # Return a confirmation message to the LLM
-        return f"Observer has been set up. I will now monitor the surroundings for '{item_to_find}' and will notify you when it appears."
+        # return f"Observer has been set up. I will now monitor the surroundings for '{item_to_find}' and will notify you when it appears."
+        return f"You are now exploring the map, monitoring the surroundings for '{item_to_find}', no perform_action tool and explore tool is allowed when exploring."
 
     def _observe_loop(self, entities_str: str):
         """
@@ -195,7 +221,7 @@ class ToolExecutor:
                     if item and item.get("Prefab") in entity_list:
                         print(f"[Observer] Found '{found_item_name}'! Triggering new inference.")
                         self.observed_guids.append(item.get("GUID"))
-                        found_item_list.append(found_item_name)
+                        found_item_list.append({"GUID": item.get("GUID"), "Prefab": found_item_name})
 
                 
                 if len(found_item_list) > 0:
@@ -237,11 +263,16 @@ class ToolExecutor:
             if type(action_obj) is str:
                 return action_obj
             self.action_queue.put_action(action_obj)
+
+        # 新加了这个，要是动作数量大于settings.ACTION_ALLOWED_NUM就不让再添加了，返回None，不继续让模型输出
+        if self.action_queue.get_stats()["queue_size"] > settings.ACTION_ALLOWED_NUM:
+            return
+        
         # requires_approval = params.get('requires_approval') # 这个参数当前未在 current_action 中使用
         if action_obj.get("Action") == "PATHFIND":
             return "You are on your way now, output <wait><\wait> if you have nothing to do while the character goes towards the destination."
         if action_obj.get("Action") == "CHOP":
-            return "You are now Chopping, send next action to the action queue if you want. (Just plan the next action or the next few actions, better not plan too far ahead)"
+            return "You are now Chopping, send next action to the action queue if you want. Or do other stuffs instead."
         return # "The actions are being performed right now."# 执行第一个工具使用块后即返回，因为用户要求"中止"
     
     def execute_check_inventory(self, block):

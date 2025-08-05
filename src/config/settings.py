@@ -26,10 +26,14 @@ class Settings:
     
     # Queue Configuration
     ACTION_QUEUE_SIZE: int = 20
+    ACTION_ALLOWED_NUM: int = 1
     DIALOG_QUEUE_SIZE: int = 20
+    
     
     # File Paths
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    RECIPE_LIST_FILE_PATH: str = os.path.join(BASE_DIR, "src", "data", "recipes", "recipes_merged_processed.json")
     LOGS_DIR: str = os.path.join(BASE_DIR, "src", "logs")
     CHAT_LOG_DIR: str = os.path.join(LOGS_DIR, "chat_log")
     # 暂时保持 memory 目录在根目录，直到用户决定移动它

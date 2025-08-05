@@ -27,10 +27,11 @@ current_perception: Dict = {}
 self_uid = 0
 task_instance = Task(action_queue, current_perception, dialog_queue, self_uid)
 
-# action_queue.put_action(parse_action_str("Action(PATHFIND, -, 400, 350, -) = -"))
+# action_queue.put_action(parse_action_str("Action(EXPLORE, -, -, -, -) = -"))
 # action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
 # action_queue.put_action(parse_action_str("Action(BUILD, -, 262, 100, homesign) = -"))
-# action_queue.put_action(parse_action_str("Action(CHOP, -, -, -, -) = 118707"))
+# action_queue.put_action(parse_action_str("Action(PICK, -, -, -, -) = 127823"))
+# action_queue.put_action(parse_action_str("Action(BUILD, -, -, -, boards) = -"))
 
 
 @app.get("/{guid}/decide/{layer}")
@@ -93,12 +94,13 @@ async def receive_perception(guid: str, request: Request):
 async def receive_event(guid: str, request: Request):
     data = await request.json()
     print(data)
+    info = "Info: {}".format(data.get("Info")) if data.get("Info") else ""
     if "BUILD" in data.get("Name"):
         if data.get("Type") == "Action-Failed":
-            
-            info = "Info: {}".format(data.get("Info")) if data.get("Info") else ""
             print(info)
             task_instance.processStream("The action {} -> {} failed. {}".format(data.get("Name"), data.get("Value"), info))
+        elif data.get("Type") in "Action-End":
+            task_instance.processStream("The action {} -> {} done. {}".format(data.get("Name"), data.get("Value"), info))
     elif data.get("Name") == "PATHFIND":
         if data.get("Type") in "Action-End":
             task_instance.processStream("You've arrived at " + str(data.get("Value")))
@@ -106,9 +108,9 @@ async def receive_event(guid: str, request: Request):
             task_instance.processStream("Can't find way to " + str(data.get("Value")) + "or is interuppted")
     else:
         if data.get("Type") in "Action-End":
-            task_instance.processStream("The action {} -> {} done.".format(data.get("Name"), data.get("Value")))
+            task_instance.processStream("The action {} -> {} done. {}".format(data.get("Name"), data.get("Value"), info))
         elif data.get("Type") == "Action-Failed":
-            task_instance.processStream("The action {} -> {} failed.".format(data.get("Name"), data.get("Value")))
+            task_instance.processStream("The action {} -> {} failed. {}".format(data.get("Name"), data.get("Value"),  info))
     # logging.info(f"Event received for GUID {guid}: {data}")
     return JSONResponse(content={"status": "received event"})
 
@@ -119,7 +121,8 @@ async def receive_command(guid: str, request: Request):
     command = data.get("command", "")
     try:
         surroundings = task_instance.toolExecutor.executeTool(parse_assistant_message("<check_surroundings></check_surroundings>")[0])
-        available_positions = "The positions that you can go to: " + json.dumps(current_perception["Positions"], sort_keys=True)
+        # available_positions = "The positions that you can go to: " + json.dumps(current_perception["Positions"], sort_keys=True)
+        available_positions = ""
         stream_input = f"The current entities are surrounding you:\n{surroundings}\n\n{available_positions}\n\n{command}"
         dialog_queue.put_dialog("Task Start: "+ command)
 
