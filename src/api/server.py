@@ -14,6 +14,22 @@ from ..config.settings import settings
 
 app = FastAPI()
 
+COMMAND = """
+
+任务1：活过第一天
+目标：点燃一次火把并存活到第二天。
+
+任务2：采集十种资源
+目标：采集 10 种不同类型的资源（例如草、树枝、浆果、燧石、花朵等）。
+
+任务3：制作基础工具
+目标：制作斧头和镐子各一个。
+
+任务4：砍树和挖矿
+目标：砍倒 3 棵树、敲碎 3 块岩石。
+
+"""
+
 # 配置日志
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
@@ -93,7 +109,6 @@ async def receive_perception(guid: str, request: Request):
 @app.post("/{guid}/events")
 async def receive_event(guid: str, request: Request):
     data = await request.json()
-    print(data)
     info = "Info: {}".format(data.get("Info")) if data.get("Info") else ""
     if "BUILD" in data.get("Name"):
         if data.get("Type") == "Action-Failed":
@@ -111,6 +126,16 @@ async def receive_event(guid: str, request: Request):
             task_instance.processStream("The action {} -> {} done. {}".format(data.get("Name"), data.get("Value"), info))
         elif data.get("Type") == "Action-Failed":
             task_instance.processStream("The action {} -> {} failed. {}".format(data.get("Name"), data.get("Value"),  info))
+
+    if data.get("Type") == "Property-Change" and data.get("Name") == "InLight(Walter)":
+        if data.get("Value") == "True":
+            task_instance.processStream("You are in light now.")
+        else:
+            task_instance.processStream("You are in dark now.")
+    if data.get("Type") == "Property-Change" and data.get("Name") == "EnteringNight":
+        if data.get("Value") == "True":
+            print(data)
+            task_instance.processStream("You are about to enter night. Make sure you have a light source like a torch etc. You have to equip the light source to prevent you from being attacked by Charlie.")
     # logging.info(f"Event received for GUID {guid}: {data}")
     return JSONResponse(content={"status": "received event"})
 
@@ -119,12 +144,12 @@ async def receive_event(guid: str, request: Request):
 async def receive_command(guid: str, request: Request):
     data = await request.json()
     command = data.get("command", "")
+    # command = COMMAND
     try:
         surroundings = task_instance.toolExecutor.executeTool(parse_assistant_message("<check_surroundings></check_surroundings>")[0])
-        # available_positions = "The positions that you can go to: " + json.dumps(current_perception["Positions"], sort_keys=True)
-        available_positions = ""
-        stream_input = f"The current entities are surrounding you:\n{surroundings}\n\n{available_positions}\n\n{command}"
-        dialog_queue.put_dialog("Task Start: "+ command)
+        inventory = task_instance.toolExecutor.executeTool(parse_assistant_message("<check_inventory></check_inventory>")[0])
+        stream_input = f"The current entities are surrounding you:\n{surroundings}\nYou have: \n{inventory}\n\n{command}"
+        dialog_queue.put_dialog("Task Start\n"+ command)
 
         task_instance.processStream(stream_input)
     except Exception as e:

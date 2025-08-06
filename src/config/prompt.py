@@ -249,32 +249,14 @@ Usage:
 </check_surroundings>
 
 
-## perform_action
+## do
 Description: Request to perform an action.
-Parameters:
-- action: (required) The action to execute.
-- target: (required) The target the action will be performed upon, should be a GUID.
-- requires_approval: (optional) A boolean indicating whether this action requires explicit user approval before execution in case the user has auto-approve mode enabled. Set to 'true' for potentially impactful operations. If not set then it will be set to 'false'.
 Usage:
-<perform_action>
-<action>Your action here</action>
-<requires_approval>true or false</requires_approval>
-</perform_action>
+<do>Your action here</do>
 
 For example:
-<perform_action>
-<action>Action(BUILD, -, -, -, axe) = -</action>
-</perform_action>
+<do>Action(BUILD, -, -, -, axe) = -</do>
 
-You can also perform several similar actions at once, but 1. NO MORE THAN 5 actions at a time, 2. Not allowed for CHOP, MINE, HAMMER these working actions that takes a long time.
-For example:
-<perform_action>
-<action>
-Action(PICK, -, -, -, -) = 103577
-Action(PICK, -, -, -, -) = 103578
-Action(PICK, -, -, -, -) = 103579
-</action>
-</perform_action>
 
 
 ## task_completion
@@ -346,7 +328,7 @@ Usage:
 
 ## 集中收集基础资源
 
-首先，集中精力收集燧石 (flint)、草 (cutgrass)和树枝 (twigs)。这些是你制作初期工具的必备基础材料。
+首先，集中精力收集燧石 (flint)、草 (cutgrass)和树枝 (twigs)。这些是你制作初期工具的必备基础材料。草和树枝可以制作火把，你需要光源才能在黑暗中活下来。
 
 ## 制作基础工具
 
@@ -381,6 +363,10 @@ Usage:
 寻找猪人村 (pighouse)：猪人 (pigman) 是很好的盟友，你可以用肉类喂他们，让他们帮你砍树 (你砍树的时候猪人 (pigman) 会跟着你砍树，你只要负责挖树桩 (stump)) 或者保护你。
 
 喂猪人四块怪物肉(monstermeat)可以把猪人变成疯猪（疯猪会攻击你），杀死疯猪可以获得一块肉和一个猪皮(pigskin)，怪物肉可以通过打蜘蛛、狗获得。
+
+## 角色状态
+
+需要保持Hunger大于0，否则会扣Health，同时需要保持Sanity大于50，否则会有影怪攻击。温度需要保持大于0和小于70，否则会因为过冷或过热而扣Health。Moisture越低越好，最高是100，太高会降Sanity。
 '''
     return prompt 
 

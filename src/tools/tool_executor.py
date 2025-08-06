@@ -77,6 +77,10 @@ class ToolExecutor:
             recipe_to_ingredients[recipe["display_name_zh"]] = recipe["ingredients"]
         return recipe_to_ingredients
     
+    def _has_explore_action(self):
+        """检查是否正在探索（观察者线程是否在运行）"""
+        return self.observer_thread is not None and self.observer_thread.is_alive()
+    
     def clear_observed_guids(self):
         print("Clearing observed_guids...")
         self.observed_guids.clear()  # 清空集合
@@ -122,8 +126,8 @@ class ToolExecutor:
             # 检查当前块是否是类型为 'tool_use' 且名称为 'perform_action' 的工具指令
             if block.get('type') == 'tool_use':
                 action_name = block.get('name')
-                if action_name == 'perform_action':
-                    return self.execute_perform_action(block)
+                if action_name == 'do':
+                    return self.execute_do(block)
                 elif action_name == 'check_inventory':
                     return self.execute_check_inventory(block)
                 elif action_name == 'check_equipslots':
@@ -158,7 +162,7 @@ class ToolExecutor:
                 elif action_name == 'check_recipe':
                     return self.execute_check_recipe(block)
 
-        print("在内容块中未找到 'perform_action' 工具使用指令。")
+        print("在内容块中未找到 'do' 工具使用指令。")
 
     def execute_check_recipe(self, block):
         if block.get('params') == {}:
@@ -173,6 +177,11 @@ class ToolExecutor:
         """
         Starts a background thread to observe for a specific item.
         """
+        # 检查是否已经在探索
+        if self._has_explore_action():
+            print(f"[ToolExecutor] Already exploring, cannot start new observer")
+            return "Cannot start observer because exploration is already in progress. Please wait for the current exploration to complete."
+        
         # Stop any previously running observer thread
         if self.observer_thread and self.observer_thread.is_alive():
             self.observer_stop_event.set()
@@ -198,7 +207,7 @@ class ToolExecutor:
 
         # Return a confirmation message to the LLM
         # return f"Observer has been set up. I will now monitor the surroundings for '{item_to_find}' and will notify you when it appears."
-        return f"You are now exploring the map, monitoring the surroundings for '{item_to_find}', no perform_action tool and explore tool is allowed when exploring."
+        return f"You are now exploring the map, monitoring the surroundings for '{item_to_find}', no `do` tool and explore tool is allowed when exploring."
 
     def _observe_loop(self, entities_str: str):
         """
@@ -218,7 +227,7 @@ class ToolExecutor:
                 found_item_list = []
                 for item in vision_items:
                     found_item_name = item.get("Prefab")
-                    if item and item.get("Prefab") in entity_list:
+                    if item and item.get("Prefab") in entity_list and item.get("GUID") not in self.observed_guids:
                         print(f"[Observer] Found '{found_item_name}'! Triggering new inference.")
                         self.observed_guids.append(item.get("GUID"))
                         found_item_list.append({"GUID": item.get("GUID"), "Prefab": found_item_name})
@@ -231,6 +240,7 @@ class ToolExecutor:
                     
                     # Use the stored task_instance to call processStream
                     self.task_instance.processStream(prompt)
+                    self.action_queue.clear_queue()
                     self.action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
                     self.dialog_queue.put_dialog(f"I found {json.dumps(found_item_list)}")
                     # Job is done, exit the thread
@@ -247,26 +257,24 @@ class ToolExecutor:
 
 
     
-    def execute_perform_action(self, block):
+    def execute_do(self, block):
 
-        params = block.get('params', {}) # 获取工具指令的参数
-        if "\n" in params.get('action'):
-            action_strs = params.get('action').split("\n")
-            for action_str in action_strs:
-                action_obj = parse_action_str(action_str)
-                if type(action_obj) is str:
-                    return action_obj
-                self.action_queue.put_action(action_obj)
-        else:
-            action_str = params.get('action') # 例如：'Action(BUILD, -, -, -, axe)'
-            action_obj = parse_action_str(action_str)
-            if type(action_obj) is str:
-                return action_obj
-            self.action_queue.put_action(action_obj)
+        action_obj = parse_action_str(block.get('content'))
 
-        # 新加了这个，要是动作数量大于settings.ACTION_ALLOWED_NUM就不让再添加了，返回None，不继续让模型输出
+        if type(action_obj) is str:
+            return action_obj
+            
+        # 检查是否正在探索
+        if self._has_explore_action():
+            print(f"[ToolExecutor] Currently exploring, blocking new action: {action_obj.get('Action')}")
+            return f"Action '{action_obj.get('Action')}' cannot be added because exploration is currently in progress. Please wait for the exploration to complete."
+        
+        # 检查队列大小限制
         if self.action_queue.get_stats()["queue_size"] > settings.ACTION_ALLOWED_NUM:
             return
+        
+        # 添加动作到队列
+        self.action_queue.put_action(action_obj)
         
         # requires_approval = params.get('requires_approval') # 这个参数当前未在 current_action 中使用
         if action_obj.get("Action") == "PATHFIND":
@@ -287,8 +295,18 @@ class ToolExecutor:
                 {key: item[key] for key in fields_to_keep if item and key in item}
                 for item in self.shared_perception_dict["EquipSlots"]
             ]
+            backpack = [
+                {key: item[key] for key in fields_to_keep if item and key in item}
+                for item in self.shared_perception_dict["Backpack"]
+            ]
             return "Your current inventory has the following items:\n" + json.dumps(inventory, sort_keys=True) + '\n' \
-                    + "And you are equipped with:\n" + json.dumps(equips, sort_keys=True)
+                    + "And you are equipped with:\n" + json.dumps(equips, sort_keys=True) + '\n' \
+                    + "And your backpack has:\n" + json.dumps(backpack, sort_keys=True) + '\n' \
+                    + "Health: " + self.shared_perception_dict["Health"] + ', ' \
+                    + "Sanity: " + self.shared_perception_dict["Sanity"] + ', ' \
+                    + "Hunger: " + self.shared_perception_dict["Hunger"] + ', ' \
+                    + "Moisture: " + self.shared_perception_dict["Moisture"] + '\n' \
+                    + "Temperature: " + self.shared_perception_dict["Temperature"]
         else:
             item_name = block.get('params')['item_name']
             quantity_itemslots = 0

@@ -1,7 +1,7 @@
 import re
 from typing import List, Dict, Any, Tuple
 
-ALLOWED_TOOLS = {"check_inventory", "perform_action", "check_surroundings", "task_completion", "check_equipslots", "mark_loc", "check_map", "check_self_GUID", "observer", "explore", "check_recipe"}  # 只允许的工具标签名
+ALLOWED_TOOLS = {"check_inventory", "do", "check_surroundings", "task_completion", "check_equipslots", "mark_loc", "check_map", "check_self_GUID", "observer", "explore", "check_recipe"}  # 只允许的工具标签名
 
 def parse_assistant_message(assistant_message: str) -> Tuple[List[Dict[str, Any]], bool]:
     content_blocks = []
@@ -33,7 +33,8 @@ def parse_assistant_message(assistant_message: str) -> Tuple[List[Dict[str, Any]
             content_blocks.append({
                 "type": "tool_use",
                 "name": tool_name,
-                "params": params
+                "params": params,
+                "content": tool_content
             })
         else:
             # 不是合法工具，原样保留为文本
@@ -56,9 +57,7 @@ def parse_assistant_message(assistant_message: str) -> Tuple[List[Dict[str, Any]
 
 # --- Example Usage ---
 message = """asdfasdf
-<observer>
-<entities>gold, grass, ...</entities>
-</observer>"""
+<do>Action(CHOP, -, -, -, -) = 114696</do>"""
 
 content_blocks = parse_assistant_message(message)
 print(content_blocks) 
