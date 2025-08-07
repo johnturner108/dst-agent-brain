@@ -6,6 +6,9 @@ An intelligent AI agent system powered by Large Language Models (LLMs), designed
 
 DST Agent Brain is an intelligent game agent system that integrates Large Language Model (LLM) to automatically execute various in-game tasks, including resource collection, tool crafting, survival strategies, and more. The system adopts a modular design with two main components: a game mod and an AI server.
 
+<p align="center">
+  <img src="assets\demo.gif" width="100%" />
+</p>
 
 ## 🏗️ Project Structure
 
