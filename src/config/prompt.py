@@ -186,7 +186,7 @@ The following table presents a list of actions that agents can perform.
 |Actions|Required|Description|
 |:---:|:---:|:---|
 |`Action(PICK, -, -, -, -) = [target]`|`{target: GUID}`|Pick the targeted resource (e.g. grass, saplings, berry bushes, etc)|
-|`Action(PICKUP, -, -, -, -) = [target]`|`{target: GUID}`|Pick up items from the ground (e.g. rocks, twigs, cutgrass, etc.)|
+|`Action(PICKUP, -, -, -, -) = [target]`|`{target: GUID}`|Pick up items from the ground (e.g. rocks, twigs, cutgrass, flint, goldnugget, etc.)|
 |`Action(BUILD, -, [x], [z], [recipe]) = -`|`{([x], [z]): position, recipe: recipe's name}`|Depending on weather you are crafting an item or placing a structure you'll need to pass a value to the *(x, z)* parameters|
 |`Action(CHOP, -, -, -, -) = [target]`|`{target: GUID}`|Chop trees, an axe must be equipped in order to use|
 |`Action(MINE, -, -, -, -) = [target]`|`{target: GUID}`|Mine rocks, sinkholes, glassiers, etc (must have a pickaxe equipped)|
@@ -248,6 +248,10 @@ Usage:
 <check_surroundings>
 </check_surroundings>
 
+## check_status
+Description: Checks the player's status.
+Usage:
+<check_status></check_status>
 
 ## do
 Description: Request to perform an action.
@@ -326,17 +330,17 @@ Usage:
 
 这份指南将详细指导你如何在游戏初期集中精力收集资源并制作关键物品，以确保你的生存。
 
-## 集中收集基础资源
+## 集中收集基础资源( petals are useless, picking them only restores your sanity, you dont have to pick them up if your sanity is above 100)
 
-首先，集中精力收集燧石 (flint)、草 (cutgrass)和树枝 (twigs)。这些是你制作初期工具的必备基础材料。草和树枝可以制作火把，你需要光源才能在黑暗中活下来。
+首先，集中精力收集燧石 (flint)、草 (cutgrass)和树枝 (twigs)。这些是你制作初期工具的必备基础材料。two cutgrass and two twigs可以制作火把，你需要光源才能在黑暗中活下来。You need to make sure you always have more than 10 twigs and 10 cutgrass.
 
 ## 制作基础工具
 
 一旦收集了足够的资源，立刻制作一把斧头 (axe) 和一把镐子 (pickaxe)，需要树枝和燧石。
 
-斧头 (axe) 用来砍伐树木获取木头 (log)。
+You need 斧头 (axe) 用来砍伐树木获取木头 (log)。
 
-镐子 (pickaxe) 用来挖掘岩石 (rock1)和金矿石 (rock2)，可以获得石头 (rocks)、燧石 (flint) 和金子 (goldnugget)。
+You need 镐子 (pickaxe) 用来挖掘岩石 (rock1)和金矿石 (rock2)，可以获得石头 (rocks)、燧石 (flint) 和金子 (goldnugget)。
 
 ## 获取初期食物
 

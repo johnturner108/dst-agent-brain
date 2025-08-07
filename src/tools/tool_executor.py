@@ -63,6 +63,8 @@ class ToolExecutor:
         # Add attributes for managing the observer thread
         self.observer_thread = None
         self.observer_stop_event = threading.Event()
+        self.pathfind_thread = None
+        self.pathfind_stop_event = threading.Event()
         # 初始化时从文件加载recipe_list
         self.recipe_to_ingredients = self.load_recipe_to_ingredients()
     
@@ -80,6 +82,10 @@ class ToolExecutor:
     def _has_explore_action(self):
         """检查是否正在探索（观察者线程是否在运行）"""
         return self.observer_thread is not None and self.observer_thread.is_alive()
+
+    def _has_pathfind_action(self):
+        """检查是否正在探索（观察者线程是否在运行）"""
+        return self.pathfind_thread is not None and self.pathfind_thread.is_alive()
     
     def clear_observed_guids(self):
         print("Clearing observed_guids...")
@@ -109,7 +115,7 @@ class ToolExecutor:
         else:
             # 文件不存在，创建空文件并返回空字典
             with open(self.map_file_path, 'w', encoding='utf-8') as f:
-                json.dump({}, f)
+                json.dump({}, f, ensure_ascii=False, indent=4)
             return {}
 
     def save_map(self):
@@ -161,6 +167,8 @@ class ToolExecutor:
                     return self.execute_observer(block)
                 elif action_name == 'check_recipe':
                     return self.execute_check_recipe(block)
+                elif action_name == 'check_status':
+                    return self.check_status()
 
         print("在内容块中未找到 'do' 工具使用指令。")
 
@@ -194,9 +202,10 @@ class ToolExecutor:
         if not item_to_find:
             return "Observer Error: You must specify the 'search' to look for items."
         self.action_queue.put_action(parse_action_str("Action(EXPLORE, -, -, -, -) = -"))
+
+        
         # Clear the stop event for the new thread
         self.observer_stop_event.clear()
-        
         # Create and start the new observer thread
         self.observer_thread = threading.Thread(
             target=self._observe_loop, 
@@ -269,6 +278,10 @@ class ToolExecutor:
             print(f"[ToolExecutor] Currently exploring, blocking new action: {action_obj.get('Action')}")
             return f"Action '{action_obj.get('Action')}' cannot be added because exploration is currently in progress. Please wait for the exploration to complete."
         
+        if self._has_pathfind_action():
+            print(f"[ToolExecutor] Currently going towards the destination, blocking new action: {action_obj.get('Action')}")
+            return f"Action '{action_obj.get('Action')}' cannot be added because you are currently going towards the destination. Please wait for the pathfinding to complete."
+        
         # 检查队列大小限制
         if self.action_queue.get_stats()["queue_size"] > settings.ACTION_ALLOWED_NUM:
             return
@@ -278,11 +291,32 @@ class ToolExecutor:
         
         # requires_approval = params.get('requires_approval') # 这个参数当前未在 current_action 中使用
         if action_obj.get("Action") == "PATHFIND":
+            if self.pathfind_thread and self.pathfind_thread.is_alive():
+                self.pathfind_stop_event.set()
+                # Wait briefly for the old thread to finish
+                self.pathfind_thread.join(timeout=1.0)
+            # Clear the stop event for the new thread
+            self.pathfind_stop_event.clear()
+            # Create and start the new observer thread
+            self.pathfind_thread = threading.Thread(
+                target=self._pathfind_loop,
+                daemon=True  # Daemon threads exit when the main program exits
+            )
+            self.pathfind_thread.start()
             return "You are on your way now, output <wait><\wait> if you have nothing to do while the character goes towards the destination."
         if action_obj.get("Action") == "CHOP":
             return "You are now Chopping, send next action to the action queue if you want. Or do other stuffs instead."
         return # "The actions are being performed right now."# 执行第一个工具使用块后即返回，因为用户要求"中止"
     
+    def _pathfind_loop(self):
+        """
+        The actual loop that runs in the background thread.
+        """
+        print(f"[Pathfind] Started going towards the destination")
+        while not self.pathfind_stop_event.is_set():
+            time.sleep(0.1)
+        print(f"[Pathfind] Stopped going towards the destination")
+
     def execute_check_inventory(self, block):
         if block.get('params') == {}:
             fields_to_keep = {"GUID", "Quantity", "Prefab"}
@@ -302,11 +336,7 @@ class ToolExecutor:
             return "Your current inventory has the following items:\n" + json.dumps(inventory, sort_keys=True) + '\n' \
                     + "And you are equipped with:\n" + json.dumps(equips, sort_keys=True) + '\n' \
                     + "And your backpack has:\n" + json.dumps(backpack, sort_keys=True) + '\n' \
-                    + "Health: " + self.shared_perception_dict["Health"] + ', ' \
-                    + "Sanity: " + self.shared_perception_dict["Sanity"] + ', ' \
-                    + "Hunger: " + self.shared_perception_dict["Hunger"] + ', ' \
-                    + "Moisture: " + self.shared_perception_dict["Moisture"] + '\n' \
-                    + "Temperature: " + self.shared_perception_dict["Temperature"]
+                    + self.check_status()
         else:
             item_name = block.get('params')['item_name']
             quantity_itemslots = 0
@@ -323,4 +353,12 @@ class ToolExecutor:
             itemslots_response = "Your have {} {} in your ItemSlots.".format(quantity_itemslots, item_name, ) if quantity_itemslots > 0 else ""
             equipslots_response = "Your have {} {} in your EquipSlots.".format(quantity_equipslots, item_name, ) if quantity_equipslots > 0 else ""
 
-            return itemslots_response + "\n" + equipslots_response 
+            return itemslots_response + "\n" + equipslots_response + "\n" + self.check_status()
+
+    def check_status(self):
+        return "Your current status is: " \
+                + "Health: " + self.shared_perception_dict["Health"] + ', ' \
+                + "Sanity: " + self.shared_perception_dict["Sanity"] + ', ' \
+                + "Hunger: " + self.shared_perception_dict["Hunger"] + ', ' \
+                + "Moisture: " + self.shared_perception_dict["Moisture"] + '\n' \
+                + "Temperature: " + self.shared_perception_dict["Temperature"]

@@ -7,10 +7,14 @@ import json
 import re
 from ..tools.parse_tool import parse_assistant_message
 from ..core.task import Task
+from ..core.event_manager import EventManager
 from ..config.prompt import systemPrompt
 from ..tools.tool_executor import parse_action_str
 from ..utils.queues import ActionQueue, DialogQueue
 from ..config.settings import settings
+
+# 禁用 uvicorn 访问日志
+logging.getLogger("uvicorn.access").disabled = True
 
 app = FastAPI()
 
@@ -42,6 +46,7 @@ dialog_queue = DialogQueue(maxsize=settings.DIALOG_QUEUE_SIZE)
 current_perception: Dict = {}
 self_uid = 0
 task_instance = Task(action_queue, current_perception, dialog_queue, self_uid)
+event_manager = EventManager(task_instance, current_perception)
 
 # action_queue.put_action(parse_action_str("Action(EXPLORE, -, -, -, -) = -"))
 # action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
@@ -109,33 +114,7 @@ async def receive_perception(guid: str, request: Request):
 @app.post("/{guid}/events")
 async def receive_event(guid: str, request: Request):
     data = await request.json()
-    info = "Info: {}".format(data.get("Info")) if data.get("Info") else ""
-    if "BUILD" in data.get("Name"):
-        if data.get("Type") == "Action-Failed":
-            print(info)
-            task_instance.processStream("The action {} -> {} failed. {}".format(data.get("Name"), data.get("Value"), info))
-        elif data.get("Type") in "Action-End":
-            task_instance.processStream("The action {} -> {} done. {}".format(data.get("Name"), data.get("Value"), info))
-    elif data.get("Name") == "PATHFIND":
-        if data.get("Type") in "Action-End":
-            task_instance.processStream("You've arrived at " + str(data.get("Value")))
-        else:
-            task_instance.processStream("Can't find way to " + str(data.get("Value")) + "or is interuppted")
-    else:
-        if data.get("Type") in "Action-End":
-            task_instance.processStream("The action {} -> {} done. {}".format(data.get("Name"), data.get("Value"), info))
-        elif data.get("Type") == "Action-Failed":
-            task_instance.processStream("The action {} -> {} failed. {}".format(data.get("Name"), data.get("Value"),  info))
-
-    if data.get("Type") == "Property-Change" and data.get("Name") == "InLight(Walter)":
-        if data.get("Value") == "True":
-            task_instance.processStream("You are in light now.")
-        else:
-            task_instance.processStream("You are in dark now.")
-    if data.get("Type") == "Property-Change" and data.get("Name") == "EnteringNight":
-        if data.get("Value") == "True":
-            print(data)
-            task_instance.processStream("You are about to enter night. Make sure you have a light source like a torch etc. You have to equip the light source to prevent you from being attacked by Charlie.")
+    event_manager.handle_event(data)
     # logging.info(f"Event received for GUID {guid}: {data}")
     return JSONResponse(content={"status": "received event"})
 
@@ -160,4 +139,4 @@ async def receive_command(guid: str, request: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run("src.api.server:app", host="0.0.0.0", port=8081, reload=True) 
+    uvicorn.run("src.api.server:app", host="0.0.0.0", port=8081, reload=True)

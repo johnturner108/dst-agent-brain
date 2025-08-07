@@ -33,8 +33,8 @@ class Settings:
     # File Paths
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    RECIPE_LIST_FILE_PATH: str = os.path.join(BASE_DIR, "src", "data", "recipes", "recipes_merged_processed.json")
-    LOGS_DIR: str = os.path.join(BASE_DIR, "src", "logs")
+    RECIPE_LIST_FILE_PATH: str = os.path.join(BASE_DIR, "recipes", "recipes_merged_processed.json")
+    LOGS_DIR: str = os.path.join(BASE_DIR, "logs")
     CHAT_LOG_DIR: str = os.path.join(LOGS_DIR, "chat_log")
     # 暂时保持 memory 目录在根目录，直到用户决定移动它
     MEMORY_DIR: str = os.path.join(BASE_DIR, "memory")
