@@ -63,8 +63,8 @@ class Task:
             if self.current_thread and self.current_thread.is_alive():
                 print("[Task] Aborting previous inference...")
                 self.abort_event.set()
-                # self.current_thread.join(timeout=2.0)  # 等待最多2秒
-                self.current_thread.join()  # 等待最多2秒
+                self.current_thread.join(timeout=2.0)  # 等待最多2秒
+                # self.current_thread.join()
             
             # 重置abort事件
             self.abort_event.clear()
