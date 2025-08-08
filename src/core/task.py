@@ -1,5 +1,3 @@
-from openai import OpenAI
-import openai
 import threading
 import time
 import re
@@ -10,15 +8,12 @@ from ..tools.parse_tool import parse_assistant_message
 from ..config.prompt import systemPrompt
 from ..tools.tool_executor import ToolExecutor
 from ..config.settings import settings
+from ..model.model_factory import ModelFactory
 
 class Task:
     def __init__(self, action_queue, current_perception, dialog_queue, self_uid):
-        # 使用配置中的AI设置
-        ai_config = settings.get_ai_config()
-        self.client = OpenAI(
-            api_key=ai_config["api_key"],
-            base_url=ai_config["base_url"],
-        )
+        # 使用模型工厂创建AI模型实例
+        self.model = ModelFactory.create_from_settings(settings)
         self.toolExecutor = ToolExecutor(self, action_queue, current_perception, dialog_queue, self_uid)
         self.dialog_queue = dialog_queue
         self.messages = [
@@ -37,42 +32,29 @@ class Task:
         self.thread_lock = threading.Lock()
 
     def createMessage(self, abort_event):
+        """
+        使用模型创建消息流
         
-        try:
-            ai_config = settings.get_ai_config()
-            stream = self.client.chat.completions.create(
-                model=ai_config["model"],
-                messages=self.messages,
-                temperature=ai_config["temperature"],
-                stream=True,
-            )
-            full_message = ""
-            for chunk in stream:
-                # Check if the abort event has been set by another thread.
-                if abort_event.is_set():
-                    print("\n[Stream aborted by user]")
-                    break  # Exit the loop if abortion is requested.
-
-                delta = chunk.choices[0].delta
-                if delta and delta.content:
-                    yield delta.content
-                    full_message += delta.content
-                    content_blocks, has_tool_use = parse_assistant_message(full_message)
-                    # print(content_blocks)
-                    # print(has_tool_use)
-                    if has_tool_use:
-                        print("has tool use")
-                        return
-                    # print(delta.content, end="")
-                    
-        except openai.APIError as e:
-            # Handle potential API errors (e.g., connection issues, invalid key)
-            print(f"An API error occurred: {e}")
-            yield "Sorry, there was an error with the service."
-        except Exception as e:
-            # Handle other unexpected errors
-            print(f"An unexpected error occurred: {e}")
-            yield "An unexpected error occurred."
+        Args:
+            abort_event: 中止事件
+            
+        Yields:
+            str: 流式输出的内容块
+        """
+        full_message = ""
+        
+        for content_chunk in self.model.create_chat_completion(
+            messages=self.messages,
+            stream=True,
+            abort_event=abort_event
+        ):
+            yield content_chunk
+            full_message += content_chunk
+            content_blocks, has_tool_use = parse_assistant_message(full_message)
+            
+            if has_tool_use:
+                print("has tool use")
+                return
 
     def processStream(self, user_message):
         # 使用锁确保同时只有一个推理线程在运行

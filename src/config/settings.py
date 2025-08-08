@@ -4,7 +4,8 @@ Centralized configuration management
 """
 
 import os
-from typing import Optional
+import json
+from typing import Optional, Dict, Any
 
 class Settings:
     """Application settings"""
@@ -14,15 +15,8 @@ class Settings:
     API_PORT: int = 8081
     API_RELOAD: bool = True
     
-    # AI Model Configuration
-    AI_MODEL: str = "kimi-k2-0711-preview"
-    AI_TEMPERATURE: float = 0.6
-    AI_API_KEY: str = "sk-L7Q2cBME4D7Oip201OQicXPrrcbNXP2Rufq4sVtYZtFQlbEb"
-    AI_BASE_URL: str = "https://api.moonshot.cn/v1"
-    
-    # Alternative AI Configuration (commented out)
-    # AI_API_KEY: str = "sk-e5c6153187014493bb4802a8aac1b375"
-    # AI_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    # AI Model Configuration - 从config.json读取
+    _config_cache: Optional[Dict[str, Any]] = None
     
     # Queue Configuration
     ACTION_QUEUE_SIZE: int = 20
@@ -48,14 +42,36 @@ class Settings:
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
     @classmethod
+    def _load_config(cls) -> Dict[str, Any]:
+        """从config.json加载配置"""
+        if cls._config_cache is not None:
+            return cls._config_cache
+        
+        config_path = os.path.join(cls.BASE_DIR, "config.json")
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                cls._config_cache = json.load(f)
+                return cls._config_cache
+        except FileNotFoundError:
+            raise FileNotFoundError(f"配置文件未找到: {config_path}")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"配置文件格式错误: {e}")
+    
+    @classmethod
     def get_ai_config(cls) -> dict:
-        """Get AI configuration dictionary"""
+        """从config.json获取AI配置"""
+        config = cls._load_config()
         return {
-            "api_key": cls.AI_API_KEY,
-            "base_url": cls.AI_BASE_URL,
-            "model": cls.AI_MODEL,
-            "temperature": cls.AI_TEMPERATURE
+            "api_key": config["api_key"],
+            "base_url": config["base_url"],
+            "model": config["model_name"],  # config.json中是model_name
+            "temperature": config["temperature"]
         }
+    
+    @classmethod
+    def get_ai_model_type(cls) -> str:
+        """获取AI模型类型，默认为openai_compatible"""
+        return "openai_compatible"
     
     @classmethod
     def get_server_config(cls) -> dict:
