@@ -17,6 +17,7 @@ class Settings:
     
     # AI Model Configuration - 从config.json读取
     _config_cache: Optional[Dict[str, Any]] = None
+    _current_config_name: Optional[str] = None
     
     # Queue Configuration
     ACTION_QUEUE_SIZE: int = 20
@@ -58,15 +59,40 @@ class Settings:
             raise ValueError(f"配置文件格式错误: {e}")
     
     @classmethod
-    def get_ai_config(cls) -> dict:
-        """从config.json获取AI配置"""
-        config = cls._load_config()
+    def get_ai_config(cls, config_name: Optional[str] = None) -> dict:
+        """从config.json获取AI配置
+        
+        Args:
+            config_name: 配置名称，如果为None则使用当前配置或第一个配置
+        """
+        configs = cls._load_config()
+        
+        # 如果没有指定配置名称，使用当前配置或第一个配置
+        if config_name is None:
+            if cls._current_config_name is not None:
+                config_name = cls._current_config_name
+            else:
+                if not configs:
+                    raise ValueError("配置文件中没有找到任何配置")
+                config_name = list(configs.keys())[0]
+        
+        # 检查配置是否存在
+        if config_name not in configs:
+            available_configs = list(configs.keys())
+            raise ValueError(f"配置 '{config_name}' 不存在。可用配置: {available_configs}")
+        
+        config = configs[config_name]
         return {
             "api_key": config["api_key"],
             "base_url": config["base_url"],
             "model": config["model_name"],  # config.json中是model_name
             "temperature": config["temperature"]
         }
+    
+    @classmethod
+    def set_current_config(cls, config_name: str):
+        """设置当前使用的配置名称"""
+        cls._current_config_name = config_name
     
     @classmethod
     def get_ai_model_type(cls) -> str:
