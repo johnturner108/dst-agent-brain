@@ -38,7 +38,7 @@ class EventManager:
     def _handle_build_event(self, data, info):
         """处理BUILD相关事件"""
         if data.get("Type") == "Action-Failed":
-            print(info)
+            # print(info)
             self.task_instance.processStream(
                 "The action {} -> {} failed. {}".format(
                     data.get("Name"), data.get("Value"), info
@@ -54,7 +54,7 @@ class EventManager:
     def _handle_pathfind_event(self, data):
         """处理PATHFIND事件"""
         if self.task_instance.toolExecutor._has_pathfind_action():
-            print(f"[EventManager] Pathfind event received, stopping pathfind thread")
+            # print(f"[EventManager] Pathfind event received, stopping pathfind thread")
             self.task_instance.toolExecutor.pathfind_stop_event.set()
             # Wait briefly for the old thread to finish
             self.task_instance.toolExecutor.pathfind_thread.join(timeout=1)
@@ -94,7 +94,7 @@ class EventManager:
         # 处理夜晚来临
         if data.get("Type") == "Property-Change" and data.get("Name") == "EnteringNight":
             if data.get("Value") == "True":
-                print(data)
+                # print(data)
                 exploration_stop = ""
                 pathfind_stop = ""
                 if self.task_instance.toolExecutor._has_explore_action():
@@ -107,7 +107,7 @@ class EventManager:
                     # Wait briefly for the old thread to finish
                     self.task_instance.toolExecutor.pathfind_thread.join(timeout=0.5)
                     pathfind_stop = "[Pathfind Stopped]\n"
-                    
+
                 self.task_instance.processStream(
                     exploration_stop + pathfind_stop +
                     "You are about to enter night. Make sure you have a light source like a torch etc. "

@@ -49,37 +49,38 @@ function ActionManager:ProcessNextAction()
         end
         
         -- 检查工作动作目标是否存在
-        if self:IsWorkAction(nextAction.Action) or nextAction.Action == "EAT" and Ents[tonumber(nextAction.Target)] == nil then
+        if nextAction.Action == "EAT" and Ents[tonumber(nextAction.Target)] == nil then
             self:OnActionFailed(nextAction, "TARGET_NOT_FOUND")
             return
         end
 
 
-        
-        -- 检查工作动作是否有合适的工具
-        if nextAction.Action == "CHOP" then
-            if not self:HasToolForAction(ACTIONS.CHOP) then
-                print("CHOP action failed: no suitable tool available")
-                self:OnActionFailed(nextAction, "NO_CHOP_TOOL")
-                return
-            end
-        elseif nextAction.Action == "MINE" then
-            if not self:HasToolForAction(ACTIONS.MINE) then
-                print("MINE action failed: no suitable tool available")
-                self:OnActionFailed(nextAction, "NO_MINE_TOOL")
-                return
-            end
-        elseif nextAction.Action == "HAMMER" then
-            if not self:HasToolForAction(ACTIONS.HAMMER) then
-                print("HAMMER action failed: no suitable tool available")
-                self:OnActionFailed(nextAction, "NO_HAMMER_TOOL")
-                return
-            end
-        elseif nextAction.Action == "DIG" then
-            if not self:HasToolForAction(ACTIONS.DIG) then
-                print("DIG action failed: no suitable tool available")
-                self:OnActionFailed(nextAction, "NO_DIG_TOOL")
-                return
+        if self:IsWorkAction(nextAction.Action) then
+            -- 检查工作动作是否有合适的工具
+            if nextAction.Action == "CHOP" then
+                if not self:HasToolForAction(ACTIONS.CHOP) then
+                    print("CHOP action failed: no suitable tool available")
+                    self:OnActionFailed(nextAction, "NO_CHOP_TOOL")
+                    return
+                end
+            elseif nextAction.Action == "MINE" then
+                if not self:HasToolForAction(ACTIONS.MINE) then
+                    print("MINE action failed: no suitable tool available")
+                    self:OnActionFailed(nextAction, "NO_MINE_TOOL")
+                    return
+                end
+            elseif nextAction.Action == "HAMMER" then
+                if not self:HasToolForAction(ACTIONS.HAMMER) then
+                    print("HAMMER action failed: no suitable tool available")
+                    self:OnActionFailed(nextAction, "NO_HAMMER_TOOL")
+                    return
+                end
+            elseif nextAction.Action == "DIG" then
+                if not self:HasToolForAction(ACTIONS.DIG) then
+                    print("DIG action failed: no suitable tool available")
+                    self:OnActionFailed(nextAction, "NO_DIG_TOOL")
+                    return
+                end
             end
         end
         

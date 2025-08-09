@@ -24,7 +24,7 @@ class Settings:
     ACTION_ALLOWED_NUM: int = 1
     DIALOG_QUEUE_SIZE: int = 20
     
-    
+    MAX_MESSAGE_LENGTH: int = 40
     # File Paths
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

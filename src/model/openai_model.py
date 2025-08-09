@@ -68,9 +68,6 @@ class OpenAIModel(BaseModel):
                     delta = chunk.choices[0].delta
                     if delta and delta.content:
                         yield delta.content
-            else:
-                response = self.client.chat.completions.create(**params)
-                yield response.choices[0].message.content
                 
         except openai.APIError as e:
             print(f"An API error occurred: {e}")
@@ -78,6 +75,21 @@ class OpenAIModel(BaseModel):
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             yield "An unexpected error occurred."
+
+
+    def create_chat_completion_once(self, messages: List[Dict[str, str]], **kwargs) -> str:
+        """
+        创建OpenAI聊天完成
+        """
+        params = {
+            "model": self.config["model"],
+            "messages": messages,
+            "temperature": self.config.get("temperature", 0.6),
+            "stream": False,
+            **kwargs
+        }
+        response = self.client.chat.completions.create(**params)
+        return response.choices[0].message.content
     
     def get_model_name(self) -> str:
         """获取模型名称"""

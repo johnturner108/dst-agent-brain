@@ -1,7 +1,7 @@
 -- 导入必要的模块
 require("recipe")
 
-local SEE_DIST = 21
+local SEE_DIST = 18
 local SEE_RANGE_HELPER = false
 local PERCEPTION_UPDATE_INTERVAL = 1
 local DSTACTION_INTERVAL = 1.5
@@ -193,7 +193,15 @@ local AgentBrain = Class(Brain, function(self, inst, global_vars, server)
 		action.Type = "Action"
 		action.Subject = "Walter"
 		action.WFN = data.action.action.id
-		self.actionManager:OnActionFailed(action, "has already been " .. action.Action .. "ed" )
+
+		local extra_info = ""
+		if action.Action =="PICK" then
+			extra_info = "or should use PICKUP instead"
+		end
+		if action.Action =="PICKUP" then
+			extra_info = "or should use PICK instead"
+		end
+		self.actionManager:OnActionFailed(action, "has already been " .. action.Action .. "ed" .. extra_info)
 	end
 
 	self.OnToolBrokeMy = function(inst, data)
@@ -344,26 +352,52 @@ function AgentBrain:Perceptions()
             end
         end
     end
-    data.EquipSlots, data.ItemSlots = equipslots, itemslots
-	data.Backpack = backpack
+    data.Possessions = {}
+    data.Possessions.EquipSlots, data.Possessions.ItemSlots = equipslots, itemslots
+    data.Possessions.Backpack = backpack
 
-    data.Health = tostring(math.floor(self.inst.components.health.currenthealth)) .. " / " .. tostring(math.floor(self.inst.components.health.maxhealth))
-    data.Hunger = tostring(math.floor(self.inst.components.hunger.current)) .. " / " .. tostring(math.floor(self.inst.components.hunger.max))
-    data.Sanity = tostring(math.floor(self.inst.components.sanity.current)) .. " / " .. tostring(math.floor(self.inst.components.sanity.max))
-    data.Temperature = tostring(math.floor(self.inst:GetTemperature()))
-    data.IsFreezing = self.inst:IsFreezing()
-    data.IsOverHeating = self.inst:IsOverheating()
-    data.Moisture = tostring(math.floor(self.inst:GetMoisture()))
+	data.RoleStatus = {}
+
+    data.RoleStatus.Health = tostring(math.floor(self.inst.components.health.currenthealth)) .. " / " .. tostring(math.floor(self.inst.components.health.maxhealth))
+    data.RoleStatus.Hunger = tostring(math.floor(self.inst.components.hunger.current)) .. " / " .. tostring(math.floor(self.inst.components.hunger.max))
+    data.RoleStatus.Sanity = tostring(math.floor(self.inst.components.sanity.current)) .. " / " .. tostring(math.floor(self.inst.components.sanity.max))
+    data.RoleStatus.Temperature = tostring(math.floor(self.inst:GetTemperature()))
+    data.RoleStatus.IsFreezing = self.inst:IsFreezing()
+    data.RoleStatus.IsOverHeating = self.inst:IsOverheating()
+    data.RoleStatus.Moisture = tostring(math.floor(self.inst:GetMoisture()))
 	if (self.CurrentAction ~= nil and self.CurrentAction.Type == "Action" and self.CurrentAction.Action == "WANDER") or 
 		(self.CurrentAction == nil) then 
-		data.IsBusy = false
+		data.RoleStatus.IsBusy = false
 	else
-		data.IsBusy = true
+		data.RoleStatus.IsBusy = true
 	end
 	local x, y, z = self.inst.Transform:GetWorldPosition()
 	data.PosX = string.format("%.1f", x)
 	data.PosY = string.format("%.1f", y)
 	data.PosZ = string.format("%.1f", z)
+
+	-- 添加时间和季节信息
+	data.WorldStatus = {}
+	data.WorldStatus.Day = TheWorld.state.cycles + 1
+	data.WorldStatus.Season = TheWorld.state.season
+	data.WorldStatus.SeasonProgress = string.format("%.2f", TheWorld.state.seasonprogress or 0)
+	data.WorldStatus.RemainingDaysInSeason = TheWorld.state.remainingdaysinseason or 0
+	
+	-- 获取时间段 (day/dusk/night)
+	local daySegment = "unknown"
+	if TheWorld.state.isday then
+		daySegment = "day"
+	elseif TheWorld.state.isdusk then
+		daySegment = "dusk" 
+	elseif TheWorld.state.isnight then
+		daySegment = "night"
+	end
+	data.WorldStatus.DaySegment = daySegment
+	
+	-- 添加当前时间比例 (0-1, 表示当天的进度)
+	data.WorldStatus.DayProgress = string.format("%.3f", TheWorld.state.time or 0)
+
+	
 
     TheSim:QueryServer(
         self.AgentServer .. "/" .. tostring(self.inst.GUID) .. "/perceptions",

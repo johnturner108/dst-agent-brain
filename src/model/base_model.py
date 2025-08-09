@@ -44,6 +44,13 @@ class BaseModel(ABC):
             str: 流式输出的内容块
         """
         pass
+
+    @abstractmethod
+    def create_chat_completion_once(self, messages: List[Dict[str, str]], **kwargs) -> str:
+        """
+        创建聊天完成
+        """
+        pass
     
     @abstractmethod
     def get_model_name(self) -> str:

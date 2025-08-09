@@ -140,7 +140,7 @@ class ToolExecutor:
                     fields_to_keep = {"GUID", "Prefab"}
                     inventory = [
                         {key: item[key] for key in fields_to_keep if key in item}
-                        for item in self.shared_perception_dict["EquipSlots"]
+                        for item in self.shared_perception_dict["Possessions"]["EquipSlots"]
                     ]
                     return "You are equipped with:\n" + json.dumps(inventory, sort_keys=True)
                 elif action_name == 'check_surroundings':
@@ -206,6 +206,10 @@ class ToolExecutor:
         
         # Clear the stop event for the new thread
         self.observer_stop_event.clear()
+        
+        # 延迟1秒
+        time.sleep(1) # 延迟一秒，让EXPLORE动作先启动。
+        
         # Create and start the new observer thread
         self.observer_thread = threading.Thread(
             target=self._observe_loop, 
@@ -222,7 +226,19 @@ class ToolExecutor:
         """
         The actual loop that runs in the background thread.
         """
-        entity_list = [name.strip() for name in entities_str.split(',') if name.strip()]
+
+        original_entity_list = [name.strip() for name in entities_str.split(',') if name.strip()]
+        entity_list = []
+        for name in original_entity_list:
+            if name == "cutgrass" and "grass" not in original_entity_list:
+                entity_list.append("grass")
+            elif name == "grass" and "cutgrass" not in original_entity_list:
+                entity_list.append("cutgrass")
+            elif name == "twig" and "twigs" not in original_entity_list:
+                entity_list.append("twigs")
+            elif name == "goldnugget" and "goldnuggets" not in original_entity_list:
+                entity_list.append("goldnuggets")
+            entity_list.append(name)
         print(f"[Observer] Started looking for item: '{entities_str}'")
         while not self.observer_stop_event.is_set():
             try:
@@ -323,15 +339,15 @@ class ToolExecutor:
             # item可能为空，需要处理
             inventory = [
                 {key: item[key] for key in fields_to_keep if item and key in item}
-                for item in self.shared_perception_dict["ItemSlots"]
+                for item in self.shared_perception_dict["Possessions"]["ItemSlots"]
             ]
             equips = [
                 {key: item[key] for key in fields_to_keep if item and key in item}
-                for item in self.shared_perception_dict["EquipSlots"]
+                for item in self.shared_perception_dict["Possessions"]["EquipSlots"]
             ]
             backpack = [
                 {key: item[key] for key in fields_to_keep if item and key in item}
-                for item in self.shared_perception_dict["Backpack"]
+                for item in self.shared_perception_dict["Possessions"]["Backpack"]
             ]
             return "Your current inventory has the following items:\n" + json.dumps(inventory, sort_keys=True) + '\n' \
                     + "And you are equipped with:\n" + json.dumps(equips, sort_keys=True) + '\n' \
@@ -340,25 +356,27 @@ class ToolExecutor:
         else:
             item_name = block.get('params')['item_name']
             quantity_itemslots = 0
-            # print(self.shared_perception_dict["ItemSlots"])
-            for item in self.shared_perception_dict["ItemSlots"]:
+            for item in self.shared_perception_dict["Possessions"]["ItemSlots"]:
                 if item and item["Prefab"] == item_name:
                     quantity_itemslots += item.get("Quantity", 0)
             quantity_equipslots = 0
-            # print(self.shared_perception_dict["EquipSlots"])
-            for item in self.shared_perception_dict["EquipSlots"]:
+            for item in self.shared_perception_dict["Possessions"]["EquipSlots"]:
                 if item and item["Prefab"] == item_name:
                     quantity_equipslots += item.get("Quantity", 0)
+            quantity_backpack = 0
+            for item in self.shared_perception_dict["Possessions"]["Backpack"]:
+                if item and item["Prefab"] == item_name:
+                    quantity_backpack += item.get("Quantity", 0)
             
-            itemslots_response = "Your have {} {} in your ItemSlots.".format(quantity_itemslots, item_name, ) if quantity_itemslots > 0 else ""
-            equipslots_response = "Your have {} {} in your EquipSlots.".format(quantity_equipslots, item_name, ) if quantity_equipslots > 0 else ""
-
-            return itemslots_response + "\n" + equipslots_response + "\n" + self.check_status()
+            itemslots_response = "Your have {} {} in your ItemSlots.\n".format(quantity_itemslots, item_name, ) if quantity_itemslots > 0 else ""
+            equipslots_response = "Your have {} {} in your EquipSlots.\n".format(quantity_equipslots, item_name, ) if quantity_equipslots > 0 else ""
+            backpack_response = "Your have {} {} in your Backpack.\n".format(quantity_backpack, item_name, ) if quantity_backpack > 0 else ""
+            return itemslots_response + equipslots_response + backpack_response + self.check_status()
 
     def check_status(self):
         return "Your current status is: " \
-                + "Health: " + self.shared_perception_dict["Health"] + ', ' \
-                + "Sanity: " + self.shared_perception_dict["Sanity"] + ', ' \
-                + "Hunger: " + self.shared_perception_dict["Hunger"] + ', ' \
-                + "Moisture: " + self.shared_perception_dict["Moisture"] + '\n' \
-                + "Temperature: " + self.shared_perception_dict["Temperature"]
+                + "Health: " + self.shared_perception_dict["RoleStatus"]["Health"] + ', ' \
+                + "Sanity: " + self.shared_perception_dict["RoleStatus"]["Sanity"] + ', ' \
+                + "Hunger: " + self.shared_perception_dict["RoleStatus"]["Hunger"] + ', ' \
+                + "Moisture: " + self.shared_perception_dict["RoleStatus"]["Moisture"] + ', ' \
+                + "Temperature: " + self.shared_perception_dict["RoleStatus"]["Temperature"]

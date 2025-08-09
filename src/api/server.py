@@ -125,15 +125,12 @@ async def receive_command(guid: str, request: Request):
     command = data.get("command", "")
     # command = COMMAND
     try:
-        surroundings = task_instance.toolExecutor.executeTool(parse_assistant_message("<check_surroundings></check_surroundings>")[0])
-        inventory = task_instance.toolExecutor.executeTool(parse_assistant_message("<check_inventory></check_inventory>")[0])
-        stream_input = f"The current entities are surrounding you:\n{surroundings}\nYou have: \n{inventory}\n\n{command}"
-        dialog_queue.put_dialog("Task Start\n"+ command)
-
-        task_instance.processStream(stream_input)
+        # 异步处理命令，立即返回响应
+        task_instance.processStreamAsync(command)
+        print(f"[Server] Command received and queued for processing: {command[:50]}...")
     except Exception as e:
-        logging.error(f"Error while processing command: {e}")
-        raise HTTPException(status_code=500, detail="Failed to process command")
+        logging.error(f"Error while queuing command: {e}")
+        raise HTTPException(status_code=500, detail="Failed to queue command")
 
     return JSONResponse(content={"status": f"Command for GUID {guid} received and is being processed."}, status_code=202)
 

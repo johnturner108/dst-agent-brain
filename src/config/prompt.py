@@ -383,3 +383,106 @@ You need 镐子 (pickaxe) 用来挖掘岩石 (rock1)和金矿石 (rock2)，可�
 # <observer>
 # <entities>goldnugget, goldnuggets, rock2, ...</entities>
 # </observer>
+
+
+def instruction_summarize(global_goal, last_goal, role_status, possessions, world_status, history_actions):
+    prompt = f'''
+# 角色
+你是一个《饥荒》世界的资深战略规划师（Planner Agent）。你的任务是基于对当前局势的全面分析，为负责具体操作的“执行者Agent”生成一份清晰、完整、富有洞察力的“行动报告”。你的决策必须以角色的长期生存为最终目标。
+
+# 核心任务
+根据下方提供的输入信息，生成一份严格遵循指定格式的【饥荒生存介入报告】。报告需要评估现状、总结过去、分析局势、下达指令。
+
+# 输入信息
+----------------------------------------
+## 1. 全局生存目标: 
+{global_goal}
+
+## 2. 上阶段目标:
+{last_goal}
+
+## 3. 角色状态 (JSON格式):
+{role_status}
+
+## 4. 角色物品栏:
+{possessions}
+
+## 5. 世界信息 (JSON格式):
+{world_status}
+
+## 6. 历史行动日志:
+{history_actions}
+----------------------------------------
+
+# 输出要求
+请严格按照以下Markdown格式生成报告，确保每个部分的内容都准确、精炼且具有指导性。分析部分应体现你的智慧，指令部分必须清晰明确。
+
+## 1. 近期行动回顾
+```text
+
+```
+
+## 2. 当前局势分析
+```text
+生存状态：
+资源缺口：
+风险评估：
+```
+
+## 3. 下阶段目标
+```text
+
+```
+
+'''
+    return prompt
+
+
+def system_prompt_summarize():
+    prompt = '''
+这份指南将详细指导你如何在游戏初期集中精力收集资源并制作关键物品，以确保你的生存。
+
+## 集中收集基础资源( petals are useless, picking them only restores your sanity, you dont have to pick them up if your sanity is above 100)
+
+首先，集中精力收集燧石 (flint)、草 (cutgrass)和树枝 (twigs)。这些是你制作初期工具的必备基础材料。two cutgrass and two twigs可以制作火把，你需要光源才能在黑暗中活下来。You need to make sure you always have more than 10 twigs and 10 cutgrass.
+
+## 制作基础工具
+
+一旦收集了足够的资源，立刻制作一把斧头 (axe) 和一把镐子 (pickaxe)，需要树枝和燧石。
+
+You need 斧头 (axe) 用来砍伐树木获取木头 (log)。
+
+You need 镐子 (pickaxe) 用来挖掘岩石 (rock1)和金矿石 (rock2)，可以获得石头 (rocks)、燧石 (flint) 和金子 (goldnugget)。
+
+## 获取初期食物
+
+看到浆果丛 (berrybush) 就去采摘浆果 (berries)。看到胡萝卜 (carrot) 就去拔，这些都是很好的食物来源。
+
+当你有木甲(armorwood)后可以去打蜘蛛，你会获得怪物肉。喂猪人能得到
+
+## 准备夜晚生存
+
+在夜晚来临前，你需要制作一个火把 (torch)。火把 (torch) 能够在夜晚提供移动的光源，让你不至于被黑暗吞噬，并且还能稍微抵御寒冷。
+
+## 寻找金子并制作科学机器
+
+你需要找到金子 (goldnugget) 来制作科学机器 (researchlab)。
+
+金子 (goldnugget) 通常在矿区 (有很多石头 (rock2) 的区域) 找到，或者可以通过与猪王 (pighouse_king) 交易获得（挖墓地获得的玩具）。
+
+找到金子 (goldnugget) 后，尽快制作一台科学机器 (researchlab)。这是你生存的关键，可以解锁更多更强大的工具。
+
+有了科学机器 (researchlab) 后，马上站在旁边制作背包 (backpack)、铲子 (shovel)等工具，以及木甲 (armorwood)、长矛 (spear) 等防具和武器。
+
+## 寻找猪人村
+
+寻找猪人村 (pighouse)：猪人 (pigman) 是很好的盟友，你可以用肉类喂他们，让他们帮你砍树 (你砍树的时候猪人 (pigman) 会跟着你砍树，你只要负责挖树桩 (stump)) 或者保护你。
+
+喂猪人四块怪物肉(monstermeat)可以把猪人变成疯猪（疯猪会攻击你），杀死疯猪可以获得一块肉和一个猪皮(pigskin)，怪物肉可以通过打蜘蛛、狗获得。
+
+## 角色状态
+
+需要保持Hunger大于0，否则会扣Health，同时需要保持Sanity大于50，否则会有影怪攻击。温度需要保持大于0和小于70，否则会因为过冷或过热而扣Health。Moisture越低越好，最高是100，太高会降Sanity。
+
+'''
+    return prompt
