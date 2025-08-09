@@ -1,3 +1,16 @@
+import json
+import sys
+import os
+
+# Handle both relative imports (when used as module) and absolute imports (when run directly)
+try:
+    from .settings import settings
+except ImportError:
+    # If relative import fails, add the parent directory to sys.path and import directly
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from config.settings import settings
+
+
 def systemPrompt():
 
     prompt = '''
@@ -442,20 +455,37 @@ def instruction_summarize(global_goal, last_goal, role_status, possessions, worl
 
 
 def system_prompt_summarize():
-    prompt = '''
+    common_recipes = ""
+    selected_recipes = ['torch', 'axe', 'pickaxe', 'spear', 'shovel', 'backpack', 'armorwood', 'researchlab', 'pighouse']
+    final_recipes = []
+    with open(settings.RECIPE_LIST_FILE_PATH, "r", encoding="utf-8") as f:
+        recipes = json.load(f)
+    for recipe in recipes:
+        if recipe['name'] in selected_recipes:
+            ingredients_string = json.dumps(recipe['ingredients'], ensure_ascii=False, indent=4)
+            common_recipes += f"{recipe['name']}（英文名：{recipe['display_name_en']}，中文名：{recipe['display_name_zh']}）: {ingredients_string}\n"
+            selected_recipes.remove(recipe['name'])
+            final_recipes.append(recipe['name'])
+
+
+    prompt = f'''
 这份指南将详细指导你如何在游戏初期集中精力收集资源并制作关键物品，以确保你的生存。
 
-## 集中收集基础资源( petals are useless, picking them only restores your sanity, you dont have to pick them up if your sanity is above 100)
+# 基础知识
 
-首先，集中精力收集燧石 (flint)、草 (cutgrass)和树枝 (twigs)。这些是你制作初期工具的必备基础材料。two cutgrass and two twigs可以制作火把，你需要光源才能在黑暗中活下来。You need to make sure you always have more than 10 twigs and 10 cutgrass.
+## 集中收集基础资源
+
+首先，集中精力收集燧石 (flint)、草 (cutgrass)和树枝 (twigs)。这些是你制作初期工具的必备基础材料。two cutgrass and two twigs可以制作火把，你需要光源才能在黑暗中活下来。
+You need to make sure you always have more than 10 twigs and 10 cutgrass.
+Petals are useless, picking them only restores your sanity, you dont have to pick them up if your sanity is above 100
 
 ## 制作基础工具
 
 一旦收集了足够的资源，立刻制作一把斧头 (axe) 和一把镐子 (pickaxe)，需要树枝和燧石。
 
-You need 斧头 (axe) 用来砍伐树木获取木头 (log)。
+You need 斧头 (axe) 用来砍伐树木获取木头 (log)，常见的树木有"evergreen", "evergreen_tall", "evergreen_normal", "evergreen_short", "deciduoustree", "deciduoustree_tall", "deciduoustree_normal", "deciduoustree_short"。
 
-You need 镐子 (pickaxe) 用来挖掘岩石 (rock1)和金矿石 (rock2)，可以获得石头 (rocks)、燧石 (flint) 和金子 (goldnugget)。
+You need 镐子 (pickaxe) 用来挖掘岩石 (rock1)和金矿石 (rock2)，挖掘rock1可以获得石头 (rocks)、燧石 (flint) 和硝石（nitre），挖掘rock2可以获得石头 (rocks)、燧石 (flint) 和金子 (goldnugget)。
 
 ## 获取初期食物
 
@@ -487,5 +517,17 @@ You need 镐子 (pickaxe) 用来挖掘岩石 (rock1)和金矿石 (rock2)，可�
 
 需要保持Hunger大于0，否则会扣Health，同时需要保持Sanity大于50，否则会有影怪攻击。温度需要保持大于0和小于70，否则会因为过冷或过热而扣Health。Moisture越低越好，最高是100，太高会降Sanity。
 
+# 常用Recepes
+
+{common_recipes}
+
 '''
+    # print(prompt)
+    # print(f"selected_recipes: {selected_recipes}")
+    # print(f"final_recipes: {final_recipes}")
     return prompt
+
+
+
+if __name__ == "__main__":
+    system_prompt_summarize()

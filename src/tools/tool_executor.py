@@ -180,6 +180,7 @@ class ToolExecutor:
         if self._has_explore_action():
             self.observer_stop_event.set()
             self.observer_thread.join(timeout=0.5)
+            self.action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
             return "Exploration stopped."
         else:
             return "No exploration in progress."
@@ -188,6 +189,7 @@ class ToolExecutor:
         if self._has_pathfind_action():
             self.pathfind_stop_event.set()
             self.pathfind_thread.join(timeout=0.5)
+            self.action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
             return "Pathfinding stopped."
         else:
             return "No pathfinding in progress."
@@ -211,10 +213,7 @@ class ToolExecutor:
             return "Cannot start observer because exploration is already in progress. Please wait for the current exploration to complete."
         
         # Stop any previously running observer thread
-        if self.observer_thread and self.observer_thread.is_alive():
-            self.observer_stop_event.set()
-            # Wait briefly for the old thread to finish
-            self.observer_thread.join(timeout=1.0) 
+        self.stop_explore()
 
         params = block.get('params', {})
         item_to_find = params.get('search')
@@ -246,19 +245,24 @@ class ToolExecutor:
         """
         The actual loop that runs in the background thread.
         """
+        trees = ["evergreen", "evergreen_tall", "evergreen_normal", "evergreen_short",
+        "deciduoustree", "deciduoustree_tall", "deciduoustree_normal", "deciduoustree_short"]
 
         original_entity_list = [name.strip() for name in entities_str.split(',') if name.strip()]
         entity_list = []
         for name in original_entity_list:
-            if name == "cutgrass" and "grass" not in original_entity_list:
+            if name == "cutgrass" or name == "grass":
                 entity_list.append("grass")
-            elif name == "grass" and "cutgrass" not in original_entity_list:
                 entity_list.append("cutgrass")
             elif name == "twig" and "twigs" not in original_entity_list:
                 entity_list.append("twigs")
-            elif name == "goldnugget" and "goldnuggets" not in original_entity_list:
-                entity_list.append("goldnuggets")
+            elif name == "goldnuggets"or name == "goldnugget" or name == "rock2":
+                entity_list.append("goldnugget")
+                entity_list.append("rock2")
+            elif "tree" in name:
+                entity_list += trees
             entity_list.append(name)
+        entity_list = list(set(entity_list))
         print(f"[Observer] Started looking for item: '{entities_str}'")
         while not self.observer_stop_event.is_set():
             try:
@@ -286,7 +290,7 @@ class ToolExecutor:
                     # Use the stored task_instance to call processStream
                     self.task_instance.processStream(prompt)
                     self.action_queue.clear_queue()
-                    self.action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
+                    self.stop_explore()
                     self.dialog_queue.put_dialog(f"I found {json.dumps(found_item_list)}")
                     # Job is done, exit the thread
                     return 
