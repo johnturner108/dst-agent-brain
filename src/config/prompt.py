@@ -317,6 +317,9 @@ Usage:
 <search>goldnugget, goldnuggets, rock2, ...</search>
 </explore>
 
+Use stop_explore to stop the explore tool:
+<stop_explore></stop_explore>
+
 
 ## check_recipe
 Description: Use this tool to check the recipes you can craft.

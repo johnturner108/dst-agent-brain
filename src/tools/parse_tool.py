@@ -1,7 +1,21 @@
 import re
 from typing import List, Dict, Any, Tuple
 
-ALLOWED_TOOLS = {"check_inventory", "check_status", "do", "check_surroundings", "task_completion", "check_equipslots", "mark_loc", "check_map", "check_self_GUID", "observer", "explore", "check_recipe"}  # 只允许的工具标签名
+ALLOWED_TOOLS = {
+    "check_inventory",
+    "check_status", 
+    "do",
+    "check_surroundings",
+    "task_completion",
+    "check_equipslots",
+    "mark_loc",
+    "check_map",
+    "check_self_GUID",
+    "explore",
+    "check_recipe",
+    "stop_explore",
+    "stop_pathfind"
+}
 
 def parse_assistant_message(assistant_message: str) -> Tuple[List[Dict[str, Any]], bool]:
     content_blocks = []

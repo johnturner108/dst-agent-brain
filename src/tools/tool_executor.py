@@ -169,8 +169,28 @@ class ToolExecutor:
                     return self.execute_check_recipe(block)
                 elif action_name == 'check_status':
                     return self.check_status()
+                elif action_name == 'stop_explore':
+                    return self.stop_explore()
+                elif action_name == 'stop_pathfind':
+                    return self.stop_pathfind()
 
-        print("在内容块中未找到 'do' 工具使用指令。")
+        print("在内容块中未找到工具使用指令。")
+
+    def stop_explore(self):
+        if self._has_explore_action():
+            self.observer_stop_event.set()
+            self.observer_thread.join(timeout=0.5)
+            return "Exploration stopped."
+        else:
+            return "No exploration in progress."
+    
+    def stop_pathfind(self):
+        if self._has_pathfind_action():
+            self.pathfind_stop_event.set()
+            self.pathfind_thread.join(timeout=0.5)
+            return "Pathfinding stopped."
+        else:
+            return "No pathfinding in progress."
 
     def execute_check_recipe(self, block):
         if block.get('params') == {}:
@@ -292,11 +312,11 @@ class ToolExecutor:
         # 检查是否正在探索
         if self._has_explore_action():
             print(f"[ToolExecutor] Currently exploring, blocking new action: {action_obj.get('Action')}")
-            return f"Action '{action_obj.get('Action')}' cannot be added because exploration is currently in progress. Please wait for the exploration to complete."
+            return f"Action '{action_obj.get('Action')}' cannot be added because exploration is currently in progress. Please wait for the exploration to complete or use <stop_explore></stop_explore> to stop the exploration."
         
         if self._has_pathfind_action():
             print(f"[ToolExecutor] Currently going towards the destination, blocking new action: {action_obj.get('Action')}")
-            return f"Action '{action_obj.get('Action')}' cannot be added because you are currently going towards the destination. Please wait for the pathfinding to complete."
+            return f"Action '{action_obj.get('Action')}' cannot be added because you are currently going towards the destination. Please wait for the pathfinding to complete or use <stop_pathfind></stop_pathfind> to stop the pathfinding."
         
         # 检查队列大小限制
         if self.action_queue.get_stats()["queue_size"] > settings.ACTION_ALLOWED_NUM:
