@@ -1,6 +1,6 @@
 -- This information tells other players more about the mod
 name = "DST Agent"
-description = "An agent powered by LLMs (Large Language Models) that can craft, fight, and most importantly——survive."
+description = "An agent powered by LLMs (Large Language Models) that can craft, fight, and most importantly——survive. Use command c_auto() to start the agent."
 author = "Haoyu"
 version = "1.6"
 --version_compatible = "1.7"
