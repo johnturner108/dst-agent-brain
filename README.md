@@ -14,21 +14,32 @@ DST Agent Brain is an intelligent game agent system that integrates Large Langua
 
 ```
 dst-agent-brain/
-├── main.py                 # Main program entry point
-├── requirements.txt        # Python dependencies
-├── dst-agent-mod/         # Game mod
-│   ├── modinfo.lua        # Mod information
-│   ├── modmain.lua        # Mod main file
-│   └── scripts/           # Mod scripts
-├── src/                   # Source code
-│   ├── api/              # API services
-│   ├── config/           # Configuration management
-│   ├── core/             # Core logic
-│   ├── tools/            # Tool modules
-│   └── utils/            # Utility functions
-├── memory/               # Memory system
-├── recipes/              # Recipe data
-└── logs/                 # Log files
+├── launch_server.py       # Main server entry point
+├── requirements.txt       # Python dependencies
+├── config.json           # Model Configuration file
+├── run_server.bat        # Windows server launcher
+├── run_server.sh         # Linux/Mac server launcher
+├── desktop/              # Desktop application
+│   ├── main.py          # Desktop app entry point
+│   └── requirements.txt  # Desktop app dependencies
+├── dst-agent-mod/        # Game mod
+│   ├── modinfo.lua      # Mod information
+│   ├── modmain.lua      # Mod main file
+│   └── scripts/         # Mod scripts
+│       ├── brains/      # AI brain logic
+│       └── components/  # Game components
+├── src/                  # Source code
+│   ├── api/             # API services
+│   ├── config/          # Configuration management
+│   ├── core/            # Core logic
+│   ├── model/           # AI model management
+│   ├── tools/           # Tool modules
+│   └── utils/           # Utility functions
+├── memory/              # Memory system
+├── recipes/             # Recipe data
+├── tests/               # Test files
+├── assets/              # Project assets
+└── logs/                # Log files
 ```
 
 ## 🚀 Quick Start
@@ -41,7 +52,7 @@ dst-agent-brain/
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/johnturner108/dst-agent-brain.git
 cd dst-agent-brain
 ```
 
@@ -51,16 +62,31 @@ pip install -r requirements.txt
 ```
 
 3. **Configure AI service**
-Edit the `src/config/settings.py` file to configure your AI API key:
-```python
-AI_API_KEY: str = "your-api-key-here"
-AI_BASE_URL: str = "https://api.moonshot.cn/v1"
+Edit the `config.json` file to configure your AI API key:
+```json
+[
+    "qwen-plus": {
+        "api_key": "you-api-key-here",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "model_name": "qwen-plus-2025-07-28",
+        "temperature": 0.7
+    },
+]
 ```
+
+**Note**: `config.json` should be a list. The `launch_server.py` and `run_server.bat` script will automatically read the first configuration item from `config.json` as the model configuration.
 
 4. **Start the AI service**
 ```bash
-python main.py
+python launch_server.py
 ```
+
+Alternatively, you can use the provided batch file on Windows:
+```bash
+run_server.bat
+```
+
+
 
 5. **Install the game mod**
 - make a soft link in `D:\Program Files (x86)\Steam\steamapps\common\Don't Starve Together\mods` to the `dst-agent-mod` folder to your game's mods directory
@@ -115,7 +141,7 @@ The system includes a comprehensive survival guide:
 ## 📝 Logging System
 
 The system provides comprehensive logging:
-- Application logs: `logs/app.log`
+- Debug logs: `logs/debug.log`
 - Chat logs: `logs/chat_log/`
 - Console output
 
