@@ -179,7 +179,9 @@ class ToolExecutor:
     def stop_explore(self):
         if self._has_explore_action():
             self.observer_stop_event.set()
-            self.observer_thread.join(timeout=0.5)
+            # 检查当前线程是否是观察者线程，避免自己join自己
+            if threading.current_thread() != self.observer_thread:
+                self.observer_thread.join(timeout=0.5)
             self.action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
             return "Exploration stopped."
         else:
@@ -188,7 +190,9 @@ class ToolExecutor:
     def stop_pathfind(self):
         if self._has_pathfind_action():
             self.pathfind_stop_event.set()
-            self.pathfind_thread.join(timeout=0.5)
+            # 检查当前线程是否是路径查找线程，避免自己join自己
+            if threading.current_thread() != self.pathfind_thread:
+                self.pathfind_thread.join(timeout=0.5)
             self.action_queue.put_action(parse_action_str("Action(STOP, -, -, -, -) = -"))
             return "Pathfinding stopped."
         else:
@@ -263,22 +267,27 @@ class ToolExecutor:
                 entity_list += trees
             entity_list.append(name)
         entity_list = list(set(entity_list))
-        print(f"[Observer] Started looking for item: '{entities_str}'")
+        print(f"[Observer] Started looking for item: '{json.dumps(entity_list, ensure_ascii=False)}'")
+
+
         while not self.observer_stop_event.is_set():
             try:
                 # Safely get the list of visible items
                 vision_items = self.shared_perception_dict.get("Vision", [])
                 
                 if not vision_items:
-                    time.sleep(1) # Wait if perception data is not yet available
+                    time.sleep(0.5) # Wait if perception data is not yet available
                     continue
                 
                 found_item_list = []
                 for item in vision_items:
                     found_item_name = item.get("Prefab")
                     if item and item.get("Prefab") in entity_list and item.get("GUID") not in self.observed_guids:
-                        print(f"[Observer] Found '{found_item_name}'! Triggering new inference.")
+                        
                         self.observed_guids.append(item.get("GUID"))
+                        if (item.get("Prefab") == "grass" or item.get("Prefab") == "twigs") and item.get("Collectable") == False:
+                            continue
+                        print(f"[Observer] Found '{found_item_name}'!")
                         found_item_list.append({"GUID": item.get("GUID"), "Prefab": found_item_name})
 
                 
@@ -288,9 +297,10 @@ class ToolExecutor:
                                 f"is now in your surroundings. You can proceed with the next action. You may set up the observer again if you are done with your action.")
                     
                     # Use the stored task_instance to call processStream
-                    self.task_instance.processStream(prompt)
+                    
                     self.action_queue.clear_queue()
                     self.stop_explore()
+                    self.task_instance.processStream(prompt)
                     self.dialog_queue.put_dialog(f"I found {json.dumps(found_item_list)}")
                     # Job is done, exit the thread
                     return 

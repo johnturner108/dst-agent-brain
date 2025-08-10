@@ -1,9 +1,1 @@
-{
-    "Starting Area": "{\"name\": \"Starting Area\", \"coords\": \"(115, 100)\", \"info\": \"Initial area with berry bushes, saplings, and deciduous trees. Good for early resource gathering.\"}",
-    "Tree Cluster A": "{\"name\": \"Tree Cluster A\", \"coords\": \"(150, 535)\", \"info\": \"Dense cluster of evergreen and evergreen_sparse trees near spawn, ideal for early wood gathering.\"}",
-    "Dense Evergreen Forest": "{\"name\": \"Dense Evergreen Forest\", \"coords\": \"(160, 545)\", \"info\": \"High density of evergreen trees, ideal for logging. Multiple trees within close proximity. Also contains spiders and saplings.\"}",
-    "Pig Village": "{\"name\": \"Pig Village\", \"coords\": \"(177.22, 610.62)\", \"info\": \"A cluster of pighouses, good for social interaction and potential meat farming.\"}",
-    "Flint and Rocks Cluster": "{\"name\": \"Flint and Rocks Cluster\", \"coords\": \"(-245, 255)\", \"info\": \"Dense cluster of flint and rocks. Good spot for early resource gathering. Two flint (GUID: 105561, 105555) and two rocks (GUID: 103444, 103450) visible. Nearby tree (evergreen) can be chopped for logs once axe is made.\"}",
-    "Rocky Area": "{\"name\": \"Rocky Area\", \"coords\": \"(-250, 210)\", \"info\": \"Area with multiple rock2 deposits, suitable for mining goldnuggets.\"}",
-    "Gold Vein 1": "{\"name\": \"Gold Vein 1\", \"coords\": \"(-120.5, 67.3)\", \"info\": \"First discovered goldnugget-bearing rock2. Mined once, may respawn or yield more.\"}"
-}
+{}

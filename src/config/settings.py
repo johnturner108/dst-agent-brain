@@ -8,6 +8,7 @@ import json
 from typing import Optional, Dict, Any
 
 class Settings:
+    ENABLE_INITIAL_PLANNING: bool = False
     """Application settings"""
     
     # API Configuration
@@ -24,7 +25,7 @@ class Settings:
     ACTION_ALLOWED_NUM: int = 1
     DIALOG_QUEUE_SIZE: int = 20
     
-    MAX_MESSAGE_LENGTH: int = 40
+    MAX_MESSAGE_LENGTH: int = 80
     # File Paths
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -36,7 +37,7 @@ class Settings:
     MAP_FILE_PATH: str = os.path.join(MEMORY_DIR, "map.json")
     
     # Observer Configuration
-    OBSERVER_CLEANUP_INTERVAL: int = 120  # seconds
+    OBSERVER_CLEANUP_INTERVAL: int = 240  # seconds
     
     # Logging Configuration
     LOG_LEVEL: str = "INFO"

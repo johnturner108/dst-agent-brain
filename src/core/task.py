@@ -102,23 +102,25 @@ class Task:
             self.is_processing_command = False
 
     def processStream(self, user_message):
-        # 如果还在等待初始规划完成，直接返回
-        if not self.initial_planning_done and self.global_goal != "":
-            self.dialog_queue.put_dialog("正在等待初始规划完成...")
-            return
-        
-        if self.global_goal == "":
-            self.dialog_queue.put_dialog("Formulating a plan for: " + user_message)
-            self.global_goal = user_message
+
+        if settings.ENABLE_INITIAL_PLANNING:
+            # 如果还在等待初始规划完成，直接返回
+            if not self.initial_planning_done and self.global_goal != "":
+                self.dialog_queue.put_dialog("正在等待初始规划完成...")
+                return
             
-            # 异步启动初始规划，等待规划完成后才开始推理
-            self.debug_log("[Task] Starting initial planning (asynchronous)...")
-            self._start_initial_planning_async()
-            
-            self.dialog_queue.put_dialog("正在制定详细计划，请稍候...")
-            
-            # 等待规划完成后再继续，不设置临时messages
-            return
+            if self.global_goal == "":
+                self.dialog_queue.put_dialog("Formulating a plan for: " + user_message)
+                self.global_goal = user_message
+                
+                # 异步启动初始规划，等待规划完成后才开始推理
+                self.debug_log("[Task] Starting initial planning (asynchronous)...")
+                self._start_initial_planning_async()
+                
+                self.dialog_queue.put_dialog("Formulating a plan, please wait...")
+                
+                # 等待规划完成后再继续，不设置临时messages
+                return
 
             # surroundings = self.toolExecutor.executeTool(parse_assistant_message("<check_surroundings></check_surroundings>")[0])
             # inventory = self.toolExecutor.executeTool(parse_assistant_message("<check_inventory></check_inventory>")[0])

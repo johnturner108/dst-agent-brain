@@ -196,10 +196,10 @@ local AgentBrain = Class(Brain, function(self, inst, global_vars, server)
 
 		local extra_info = ""
 		if action.Action =="PICK" then
-			extra_info = "or should use PICKUP instead"
+			extra_info = " or should use PICKUP instead"
 		end
 		if action.Action =="PICKUP" then
-			extra_info = "or should use PICK instead"
+			extra_info = " or should use PICK instead"
 		end
 		self.actionManager:OnActionFailed(action, "has already been " .. action.Action .. "ed" .. extra_info)
 	end
